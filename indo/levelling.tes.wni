@@ -1,0 +1,7 @@
+impor * sebagai lv dari "./levelling.wni"
+
+cetak("pertumbuhan:", lv.pertumbuhan)
+cetak("rentangXp(5):", JSON.teks(lv.rentangXp(5)))
+cetak("cariLevel(1000):", lv.cariLevel(1000))
+cetak("bisaNaikLevel(2,1000):", lv.bisaNaikLevel(2, 1000))
+cetak("bisaNaikLevel(50,1000):", lv.bisaNaikLevel(50, 1000))
