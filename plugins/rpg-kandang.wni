@@ -1,0 +1,35 @@
+misal handler = asinkron (m, { conn }) =>  {
+  misal banteng = global.db.data.users[m.sender].banteng
+  misal harimau = global.db.data.users[m.sender].harimau
+  misal gajah = global.db.data.users[m.sender].gajah
+  misal kambing = global.db.data.users[m.sender].kambing
+  misal panda = global.db.data.users[m.sender].panda
+  misal buaya = global.db.data.users[m.sender].buaya
+  misal kerbau = global.db.data.users[m.sender].kerbau
+  misal sapi = global.db.data.users[m.sender].sapi
+  misal monyet = global.db.data.users[m.sender].monyet
+  misal babihutan = global.db.data.users[m.sender].babihutan
+  misal babi = global.db.data.users[m.sender].babi
+  misal ayam = global.db.data.users[m.sender].ayam
+  misal ndy = `List Hewan Di Kandang
+    
+• Banteng: ${banteng} Ekor
+• Harimau: ${harimau} Ekor
+• Gajah: ${gajah} Ekor
+• Kambing: ${kambing} Ekor
+• Panda: ${panda} Ekor
+• Buaya: ${buaya} Ekor
+• Kerbau: ${kerbau} Ekor
+• Sapi: ${sapi} Ekor
+• Monyet: ${monyet} Ekor
+• Babi Hutan: ${babihutan} Ekor
+• Babi: ${babi} Ekor
+• Ayam: ${ayam} Ekor
+ 
+ `.rapikan()
+  conn.reply(m.chat, ndy, m)
+}
+handler.help = ["kandang"]
+handler.tags = ["rpg"]
+handler.command = /^(kandang)$/i
+ekspor bawaan handler

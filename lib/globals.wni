@@ -1,0 +1,3 @@
+impor * sebagai baileys dari "baileys"
+global.baileys = baileys
+ekspor bawaan baileys

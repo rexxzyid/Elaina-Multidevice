@@ -1,0 +1,88 @@
+impor Database dari "better-sqlite3"
+impor { Mutex } dari "async-mutex"
+impor path dari "path"
+impor fs dari "fs"
+tetap { BufferJSON, initAuthCreds, proto } = global.baileys
+ekspor bawaan asinkron (folder = "./sessions") =>  {
+  tetap mutex = baru Mutex()
+  tetap ALLOWED_KEYS = baru Himpunan(["pre-key", "session", "sender-key", "app-state-sync-key", "app-state-sync-version"])
+  tetap dir = path.resolve(`${folder}/auth.db`)
+  fs.mkdirSync(path.dirname(dir), { recursive: benar })
+  tetap db = baru Database(dir)
+  db.pragma("journal_mode = WAL")
+  db.pragma("synchronous = NORMAL")
+  db.pragma("temp_store = MEMORY")
+  db.pragma("foreign_keys = ON")
+  db.jalankan(`
+		CREATE TABLE IF NOT EXISTS creds (
+			id INTEGER PRIMARY KEY CHECK (id = 1),
+			data TEXT NOT NULL,
+			updated_at INTEGER
+		);
+
+		CREATE TABLE IF NOT EXISTS keys (
+			category TEXT NOT NULL,
+			id TEXT NOT NULL,
+			data TEXT,
+			updated_at INTEGER,
+			PRIMARY KEY (category, id)
+		);
+	`)
+  tetap stmtGetCreds = db.prepare(`SELECT data FROM creds WHERE id=1`)
+  tetap stmtSetCreds = db.prepare(`INSERT OR REPLACE INTO creds
+		 (id, data, updated_at)
+		 VALUES (1, ?, ?)`)
+  tetap stmtGetKey = db.prepare(`SELECT data FROM keys
+		 WHERE category=? AND id=?`)
+  tetap stmtSetKey = db.prepare(`INSERT OR REPLACE INTO keys
+		 (category, id, data, updated_at)
+		 VALUES (?, ?, ?, ?)`)
+  tetap stmtDelKey = db.prepare(`DELETE FROM keys
+		 WHERE category=? AND id=?`)
+  tetap readCreds = asinkron () => mutex.runExclusive(() =>  {
+    tetap row = stmtGetCreds.get()
+    kembalikan row ? JSON.urai(row.data, BufferJSON.reviver) : kosong
+  })
+  tetap writeCreds = asinkron (creds) => mutex.runExclusive(() =>  {
+    stmtSetCreds.run(JSON.teks(creds, BufferJSON.replacer), Tanggal.now())
+  })
+  tetap readKey = asinkron (category, id) => mutex.runExclusive(() =>  {
+    tetap row = stmtGetKey.get(category, id)
+    jika (bukan row) {
+      kembalikan kosong
+    }
+    misal value = JSON.urai(row.data, BufferJSON.reviver)
+    jika (category == "app-state-sync-key") {
+      value = proto.Message.AppStateSyncKeyData.fromObject(value)
+    }
+    kembalikan value
+  })
+  tetap writeKey = asinkron (category, id, value) => mutex.runExclusive(() =>  {
+    stmtSetKey.run(category, id, JSON.teks(value, BufferJSON.replacer), Tanggal.now())
+  })
+  tetap removeKey = asinkron (category, id) => mutex.runExclusive(() =>  {
+    stmtDelKey.run(category, id)
+  })
+  tetap creds = (tunggu readCreds()) atau initAuthCreds()
+  kembalikan { state: { creds, keys: { get: asinkron (type, ids) =>  {
+    tetap result = {}
+    untuk (tetap id dari ids) {
+      result[id] = tunggu readKey(type, id)
+    }
+    kembalikan result
+  }, set: asinkron (data) =>  {
+    tetap tasks = []
+    untuk (tetap category dalam data) {
+      jika (bukan ALLOWED_KEYS.has(category)) {
+        lanjut
+      }
+      untuk (tetap id dalam data[category]) {
+        tetap value = data[category][id]
+        tasks.tambah(value ? writeKey(category, id, value) : removeKey(category, id))
+      }
+    }
+    tunggu Janji.all(tasks)
+  } } }, saveCreds: asinkron () =>  {
+    tunggu writeCreds(creds)
+  } }
+}

@@ -1,0 +1,98 @@
+misal handler = asinkron (m, { conn, usedPrefix }) =>  {
+  misal user = global.db.data.users[m.sender]
+  misal __timers = baru Tanggal() - user.lastnebang
+  misal penebang = conn.getName(m.sender)
+  jika (user.axe < 1) {
+    kembalikan m.reply("Kamu belum mempunyai Axe")
+  }
+  jika (user.stamina < 20) {
+    kembalikan m.reply(`Stamina Kamu Tidak Cukup
+Harap Isi Stamina Kamu Dengan *${usedPrefix}eat`)
+  }
+  jika (user.lastnebang > 10800000) {
+    lempar m.reply(`Kamu Masih Kelelahan
+Harap Tunggu ${clockString(10800000 - __timers)} Lagi`)
+  }
+  misal hmsil1 = Matematika.bawah(Matematika.acak() * 300)
+  misal hmsil2 = Matematika.bawah(Matematika.acak() * 3000)
+  misal hmsil3 = Matematika.bawah(Matematika.acak() * 300)
+  misal jln = `
+🚶⬛⬛⬛⬛⬛⬛⬛⬛⬛
+⬛⬜⬜⬜⬛⬜⬜⬜⬛⬛
+⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛
+🌳🏘️🌳🌳  🌳 🏘️ 🌳🌳🌳
+
+${penebang} 
+Mencari Area....
+`
+  misal jln2 = `
+⬛⬛⬛⬛⬛⬛🚶⬛⬛⬛
+⬛⬜⬜⬜⬛⬜⬜⬜⬛⬛
+⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛
+🌳🏘️🌳🌳  🌳 🏘️ 🌳🌳🌳
+
+${penebang} 
+Hampir Sampai....
+`
+  misal jln3 = `
+⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛
+⬛⬜⬜⬜⬛⬜⬜⬜⬛⬛
+⬛⬛⬛⬛⬛⬛⬛⬛⬛🚶
+🌳🏘️🌳🌳  🌳 🏘️ 🌳🌳🌳
+
+${penebang} 
+Mulai Menebang....
+`
+  misal jln4 = `
+⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛
+⬛⬜⬜⬜⬛⬜⬜⬜⬛⬛
+⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛
+🏘️ 🏘️ 🚶
+
+${penebang}
+Menerima Hasil....
+`
+  misal hsl = `
+*Hasil Nebang ${penebang}*
+
+Kayu: ${hmsil1}
+Uang: ${hmsil2}
+Exp: ${hmsil3}
+ 
+ Stamina Kamu Berkurang -20
+`
+  user.axedurability -= 5
+  user.stamina -= 20
+  user.money += hmsil2
+  user.kayu += hmsil1
+  user.exp += hmsil3
+  tetap { key } = tunggu m.reply(`${penebang} Mencari Area Nebang.....`)
+  aturWaktu(() =>  {
+    conn.reply(hsl, key)
+  }, 27000)
+  aturWaktu(() =>  {
+    m.edit(jln4, key)
+  }, 25000)
+  aturWaktu(() =>  {
+    m.edit(jln3, key)
+  }, 20000)
+  aturWaktu(() =>  {
+    m.edit(jln2, key)
+  }, 15000)
+  aturWaktu(() =>  {
+    m.edit(jln, key)
+  }, 10000)
+  user.lastnebang = Tanggal.now()
+}
+handler.help = ["nebang"]
+handler.tags = ["rpg"]
+handler.command = /^(nebang|menebang)$/i
+handler.group = benar
+ekspor bawaan handler
+fungsi clockString(ms) {
+  misal d = adalahNaN(ms) ? "--" : Matematika.bawah(ms / 86400000)
+  misal h = adalahNaN(ms) ? "--" : Matematika.bawah(ms / 3600000) % 24
+  misal m = adalahNaN(ms) ? "--" : Matematika.bawah(ms / 60000) % 60
+  misal s = adalahNaN(ms) ? "--" : Matematika.bawah(ms / 1000) % 60
+  kembalikan ["\n" + d, " *Hari*\n ", h, " *Jam*\n ", m, " *Menit*\n ", s, " *Detik* "].petakan((v) => v.toString().isiAwal(2, 0)).gabung("")
+}

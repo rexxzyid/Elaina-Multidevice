@@ -1,0 +1,51 @@
+tetap cooldown = 300000
+misal handler = asinkron (m) =>  {
+  misal user = global.db.data.users[m.sender]
+  misal now = Tanggal.now()
+  misal timers = cooldown - (now - user.lastmining)
+  jika (user.stamina < 20) {
+    kembalikan m.reply("Kamu Kelelahan\nHeal Terlebih dahulu supaya bisa menambang.")
+  }
+  jika (user.pickaxe < 1) {
+    kembalikan m.reply("Mau mining ga punya pickaxe 🗿")
+  }
+  jika (now - user.lastmining <= cooldown) {
+    kembalikan m.reply(`Kamu Sudah Menambang!!, Tunggu selama *🕐${timers.toTimeString()}*`)
+  }
+  tetap rewards = reward()
+  misal text = "Kamu Telah Menambang dan tersesat"
+  untuk (tetap lost dalam rewards.lost) {
+    jika (user[lost]) {
+      tetap total = rewards.lost[lost].getRandom()
+      user[lost] -= total * 1
+      jika (total) {
+        text += `
+*${global.rpg.emoticon(lost)}${lost}:* ${toRupiah(total)}`
+      }
+    }
+  }
+  text += "\n\nTapi Kamu Mendapatkan"
+  untuk (tetap rewardItem dalam rewards.reward) {
+    jika (rewardItem dalam user) {
+      tetap total = rewards.reward[rewardItem].getRandom()
+      user[rewardItem] += total * 1
+      jika (total) {
+        text += `
+*${global.rpg.emoticon(rewardItem)}${rewardItem}:* ${toRupiah(total)}`
+      }
+    }
+  }
+  m.reply(text)
+  user.lastmining = now
+}
+handler.help = ["mining"]
+handler.tags = ["rpg"]
+handler.command = /^(mining)$/i
+handler.register = benar
+handler.group = benar
+ekspor bawaan handler
+fungsi reward() {
+  misal rewards = { reward: { exp: 1000, trash: 101, string: 25, rock: 30, iron: 25, emerald: [1, 4, 0, 0, 3], common: [10, 40, 82, 100, 3], uncommon: [34, 5, 23, 81], mythic: [12, 4, 0, 1, 0], legendary: [0, 0, 5, 1, 6, 2, 0, 0], gold: [0, 0, 0, 0, 0, 1, 0], diamond: [7, 2, 5, 0, 3, 0, 1, 0] }, lost: { stamina: 20, pickaxedurability: 10 } }
+  kembalikan rewards
+}
+tetap toRupiah = (number) => uraiBulat(number).keTeksIndonesia().ganti(/,/gi, ".")

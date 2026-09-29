@@ -1,0 +1,11 @@
+impor * sebagai u dari "./util.wni"
+
+cetak("t1:", u.toTimeString(90061000) == "1 hari 1 jam 1 menit 1 detik")
+cetak("t2:", u.toTimeString(5000) == "5 detik")
+cetak("t3:", u.toTimeString(0) == "")
+cetak("isNumber 42:", u.isNumber("42"))
+cetak("isNumber abc:", u.isNumber("abc") == salah)
+cetak("nullish kosong:", u.nullish(kosong))
+cetak("nullish 0:", u.nullish(0) == salah)
+cetak("getKey halo:", u.getKey("halo") == "a4e63bcacf6c172ad84f9f4523c8f1acaf33676fa76d3258c67b7e7bbf16d777")
+cetak("getKey null:", u.getKey(kosong) == "null")

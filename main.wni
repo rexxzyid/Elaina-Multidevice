@@ -1,0 +1,277 @@
+impor "./lib/globals.wni"
+impor "./config.wni"
+impor { createRequire } dari "module"
+impor path, { join } dari "path"
+impor { fileURLToPath, pathToFileURL } dari "url"
+global.__filename = fungsi filename(pathURL = importMeta.url, rmPrefix = process.platform != "win32") {
+  jika (rmPrefix) {
+    kembalikan /file:\/\/\//.uji(pathURL) ? fileURLToPath(pathURL) : pathURL
+  }
+  kembalikan pathToFileURL(pathURL).toString()
+}
+global.__dirname = fungsi dirname(pathURL) {
+  kembalikan path.dirname(global.__filename(pathURL, benar))
+}
+global.__require = fungsi require(dir = importMeta.url) {
+  kembalikan createRequire(dir)
+}
+impor fs dari "fs"
+impor { spawn } dari "child_process"
+impor { tmpdir } dari "os"
+impor { format } dari "util"
+impor { parentPort } dari "worker_threads"
+impor chalk dari "chalk"
+impor pino dari "pino"
+impor syntaxerror dari "syntax-error"
+impor Database dari "better-sqlite3"
+impor { makeWASocket, protoType, serialize } dari "./lib/simple.wni"
+impor useSQLite dari "./lib/useSQLite.wni"
+tetap { Browsers, fetchLatestWaWebVersion, makeCacheableSignalKeyStore } = global.baileys
+protoType()
+serialize()
+tetap __dirname = global.__dirname(importMeta.url)
+global.prefix = baru RegEx("^[" + "‎xzXZ/!#$%+£¢€¥^°=¶∆×÷π√✓©®:;?&.\\-".ganti(/[|\\{}[\]()^$+*?.-]/g, "\\$&") + "]")
+global.db = { sqlite: kosong, data: kosong }
+global.loadDatabase = fungsi() {
+  jika (bukan global.db.sqlite) {
+    tetap dbFile = path.resolve("./data/database.db")
+    fs.mkdirSync(path.dirname(dbFile), { recursive: benar })
+    global.db.sqlite = baru Database(dbFile)
+    global.db.sqlite.pragma("journal_mode = WAL")
+    global.db.sqlite.pragma("synchronous = NORMAL")
+    global.db.sqlite.pragma("wal_autocheckpoint = 1000")
+    global.db.sqlite.jalankan(`
+      CREATE TABLE IF NOT EXISTS database (
+        id INTEGER PRIMARY KEY,
+        data TEXT
+      )
+    `)
+  }
+  jika (global.db.data != kosong) {
+    kembalikan
+  }
+  global.db.data = { users: {}, chats: {}, stats: {}, msgs: {}, sticker: {}, settings: {} }
+  tetap row = global.db.sqlite.prepare("SELECT data FROM database WHERE id = 1").get()
+  jika (row?.data) {
+    coba {
+      Objek.tetapkan(global.db.data, JSON.urai(row.data))
+    } tangkap {
+      Konsol.galat("[DB] JSON rusak, reset database")
+    }
+  } lainnya {
+    global.db.sqlite.prepare("INSERT OR IGNORE INTO database (id, data) VALUES (1, ?)").run(JSON.teks(global.db.data))
+  }
+}
+loadDatabase()
+tetap { state, saveCreds } = tunggu useSQLite("sessions")
+tetap { version } = tunggu fetchLatestWaWebVersion()
+tetap connectionOptions = { auth: { creds: state.creds, keys: makeCacheableSignalKeyStore(state.keys, pino().child({ level: "fatal", stream: "store" })) }, version, logger: pino({ level: "silent" }), browser: Browsers.ubuntu("Edge"), generateHighQualityLinkPreview: benar, syncFullHistory: salah, shouldSyncHistoryMessage: () => salah, markOnlineOnConnect: benar, connectTimeoutMs: 60000, keepAliveIntervalMs: 30000, retryRequestDelayMs: 250, maxMsgRetryCount: 5, cachedGroupMetadata: (jid) => conn.chats[jid] }
+global.conn = makeWASocket(connectionOptions)
+jika (bukan conn.authState.creds.registered) {
+  Konsol.cetak(chalk.bgWhite(chalk.blue("Generating code...")))
+  coba {
+    aturWaktu(asinkron () =>  {
+      misal code = tunggu conn.requestPairingCode(global.pairingNumber)
+      code = code?.cocok(/.{1,4}/g)?.gabung("-") atau code
+      Konsol.cetak(chalk.black(chalk.bgGreen("Your Pairing Code : ")), chalk.black(chalk.white(code)))
+    }, 3000)
+  } tangkap (e) {
+    Konsol.cetak(e)
+    fs.rmSync("./sessions", { recursive: benar, force: benar })
+    parentPort.postMessage("restart")
+  }
+}
+jika (global.db) {
+  aturInterval(() =>  {
+    jika (global.db.data) {
+      global.db.sqlite.prepare("UPDATE database SET data = ? WHERE id = 1").run(JSON.teks(global.db.data))
+    }
+    jika ((global.support atau {}).find) {
+      tetap folders = [tmpdir(), "tmp"]
+      folders.untukSetiap((folder) => spawn("find", [folder, "-amin", "3", "-type", "f", "-delete"]))
+    }
+  }, 5000)
+}
+asinkron fungsi connectionUpdate(update) {
+  tetap { receivedPendingNotifications, connection, lastDisconnect, isOnline } = update
+  jika (connection == "connecting") {
+    Konsol.cetak(chalk.redBright("⚡ Mengaktifkan Bot, Mohon tunggu sebentar..."))
+  }
+  jika (connection == "open") {
+    Konsol.cetak(chalk.green("✅ Tersambung"))
+  }
+  jika (isOnline == benar) {
+    Konsol.cetak(chalk.green("Status Aktif"))
+  } lainnya jika (isOnline == salah) {
+    Konsol.cetak(chalk.red("Status Mati"))
+  }
+  jika (receivedPendingNotifications) {
+    Konsol.cetak(chalk.yellow("Menunggu Pesan Baru"))
+  }
+  tetap output = lastDisconnect?.error?.output
+  jika (output?.payload) {
+    jika (output.statusCode == 401) {
+      Konsol.cetak(chalk.red("Session logged out. Recreate session..."))
+      fs.rmSync("./sessions", { recursive: benar, force: benar })
+      parentPort.postMessage("restart")
+      kembalikan
+    } lainnya jika (output.statusCode == 403) {
+      Konsol.cetak(chalk.red("WhatsApp account banned :D"))
+      process.exit(0)
+    } lainnya jika (output.statusCode == 515) {
+      Konsol.cetak(chalk.yellow("Restart Required, Restarting...."))
+    } lainnya jika (output.statusCode == 428) {
+      Konsol.cetak(chalk.yellow("Connection closed, Restarting...."))
+    } lainnya jika (output.statusCode == 408) {
+      Konsol.cetak(chalk.yellow("Connection timed out, Restarting...."))
+    } lainnya {
+      Konsol.cetak(chalk.red(output.payload.message))
+    }
+    tunggu global.reloadHandler(benar)
+  }
+  jika (bukan global.db.data) {
+    tunggu global.loadDatabase()
+  }
+}
+misal isInit = benar
+misal handler = tunggu imporDinamis("./handler.js")
+global.reloadHandler = asinkron fungsi(restartConn) {
+  coba {
+    tetap newHandler = tunggu imporDinamis("./handler.js?update=" + Tanggal.now()).catch(Konsol.error)
+    jika (Objek.kunci(newHandler atau {}).panjang) {
+      handler = newHandler
+    }
+  } tangkap (e) {
+    Konsol.galat(e)
+  }
+  jika (restartConn) {
+    tetap oldChats = global.conn.chats
+    coba {
+      global.conn.ws.close()
+    } tangkap {}
+    conn.ev.removeAllListeners()
+    global.conn = makeWASocket(connectionOptions, { chats: oldChats })
+    isInit = benar
+  }
+  jika (bukan isInit) {
+    conn.ev.off("messages.upsert", conn.handler)
+    conn.ev.off("group-participants.update", conn.participantsUpdate)
+    conn.ev.off("groups.update", conn.groupsUpdate)
+    conn.ev.off("message.delete", conn.onDelete)
+    conn.ev.off("connection.update", conn.connectionUpdate)
+    conn.ev.off("creds.update", conn.credsUpdate)
+  }
+  conn.welcome = "✦━━━━━━[ *WELCOME* ]━━━━━━✦\n\n┏––––––━━━━━━━━•\n│⫹⫺ @subject\n┣━━━━━━━━┅┅┅\n│( 👋 Hallo @user)\n├[ *INTRO* ]—\n│ *Nama:* \n│ *Umur:* \n│ *Gender:*\n┗––––––━━┅┅┅\n\n––––––┅┅ *DESCRIPTION* ┅┅––––––\n@desc"
+  conn.bye = "✦━━━━━━[ *GOOD BYE* ]━━━━━━✦\nSayonara *@user* 👋( ╹▽╹ )"
+  conn.spromote = "@user sekarang admin!"
+  conn.sdemote = "@user sekarang bukan admin!"
+  conn.sDesc = "Deskripsi telah diubah ke \n@desc"
+  conn.sSubject = "Judul grup telah diubah ke \n@subject"
+  conn.sIcon = "Icon grup telah diubah!"
+  conn.sRevoke = "Link group telah diubah ke \n@revoke"
+  conn.handler = handler.handler.bind(global.conn)
+  conn.participantsUpdate = handler.participantsUpdate.bind(global.conn)
+  conn.groupsUpdate = handler.groupsUpdate.bind(global.conn)
+  conn.onDelete = handler.deleteUpdate.bind(global.conn)
+  conn.connectionUpdate = connectionUpdate.bind(global.conn)
+  conn.credsUpdate = saveCreds.bind(global.conn)
+  conn.ev.on("call", asinkron (calls) =>  {
+    untuk (tetap call dari calls) {
+      tetap { id, from, status } = call
+      tetap settings = global.db.data.settings[conn.user.jid]
+      jika (status == "offer" dan settings.anticall) {
+        tunggu conn.rejectCall(id, from)
+        Konsol.cetak("Menolak panggilan dari", from)
+      }
+    }
+  })
+  conn.ev.on("messages.upsert", conn.handler)
+  conn.ev.on("group-participants.update", conn.participantsUpdate)
+  conn.ev.on("groups.update", conn.groupsUpdate)
+  conn.ev.on("message.delete", conn.onDelete)
+  conn.ev.on("connection.update", conn.connectionUpdate)
+  conn.ev.on("creds.update", conn.credsUpdate)
+  isInit = salah
+  kembalikan benar
+}
+tetap pluginFolder = global.__dirname(join(__dirname, "./plugins/index"))
+tetap pluginFilter = (filename) => /\.js$/.uji(filename)
+global.plugins = {}
+asinkron fungsi filesInit() {
+  untuk (tetap filename dari fs.readdirSync(pluginFolder).saring(pluginFilter)) {
+    coba {
+      tetap file = global.__filename(join(pluginFolder, filename))
+      tetap module = tunggu imporDinamis(file)
+      global.plugins[filename] = module.default atau module
+    } tangkap (e) {
+      conn.logger.error("❌ Failed to load plugins " + filename + ": " + e)
+      hapus global.plugins[filename]
+    }
+  }
+}
+filesInit().then(() => Konsol.cetak("Successfully Loaded " + Objek.kunci(global.plugins).panjang + " Plugins")).catch(Konsol.error)
+global.reload = asinkron (_ev, filename) =>  {
+  jika (bukan pluginFilter(filename)) {
+    kembalikan
+  }
+  tetap dir = global.__filename(join(pluginFolder, filename), benar)
+  jika (filename dalam global.plugins) {
+    jika (fs.existsSync(dir)) {
+      conn.logger.info("re - require plugin '" + filename + "'")
+    } lainnya {
+      conn.logger.warn("deleted plugin '" + filename + "'")
+      kembalikan hapus global.plugins[filename]
+    }
+  } lainnya {
+    conn.logger.info("requiring new plugin '" + filename + "'")
+  }
+  tetap err = syntaxerror(fs.readFileSync(dir), filename, { sourceType: "module", allowAwaitOutsideFunction: benar })
+  jika (err) {
+    conn.logger.error("syntax error while loading '" + filename + "'\n" + format(err))
+    kembalikan
+  }
+  coba {
+    tetap module = tunggu imporDinamis(global.__filename(dir) + "?update=" + Tanggal.now())
+    global.plugins[filename] = module.default atau module
+  } tangkap (e) {
+    conn.logger.error("error require plugin '" + filename + "\n" + format(e) + "'")
+  } akhirnya {
+    global.plugins = Objek.dariEntri(Objek.entri(global.plugins).urutkan(([a], [b]) => a.localeCompare(b)))
+  }
+}
+Objek.bekukan(global.reload)
+fs.watch(pluginFolder, global.reload)
+tunggu global.reloadHandler()
+asinkron fungsi _quickTest() {
+  tetap results = tunggu Janji.all([spawn("ffmpeg"), spawn("ffprobe"), spawn("ffmpeg", ["-hide_banner", "-loglevel", "error", "-filter_complex", "color", "-frames:v", "1", "-f", "webp", "-"]), spawn("convert"), spawn("magick"), spawn("gm"), spawn("find", ["--version"])].petakan((child) =>  {
+    kembalikan Janji.race([baru Janji((resolve) =>  {
+      child.on("close", (code) => resolve(code != 127))
+    }), baru Janji((resolve) =>  {
+      child.on("error", () => resolve(salah))
+    })])
+  }))
+  tetap [ffmpeg, ffprobe, ffmpegWebp, convert, magick, gm, find] = results
+  tetap support = (global.support = { ffmpeg, ffprobe, ffmpegWebp, convert, magick, gm, find })
+  Objek.bekukan(global.support)
+  jika (bukan support.ffmpeg) {
+    conn.logger.warn("Please install ffmpeg for sending videos (apt install ffmpeg)")
+  }
+  jika (support.ffmpeg dan bukan support.ffmpegWebp) {
+    conn.logger.warn("Stickers may not animated without libwebp on ffmpeg (--enable-ibwebp while compiling ffmpeg)")
+  }
+  jika (bukan support.convert dan bukan support.magick dan bukan support.gm) {
+    conn.logger.warn("Stickers may not work without imagemagick if libwebp on ffmpeg doesnt isntalled (apt install imagemagick)")
+  }
+}
+_quickTest().then(() => conn.logger.info("☑️ Quick Test Done")).catch(Konsol.error)
+fungsi closeDB() {
+  coba {
+    global.db.sqlite.close()
+    Konsol.cetak("Database closed")
+  } tangkap (e) {
+    Konsol.galat(e)
+  }
+}
+process.on("uncaughtException", Konsol.error)
+process.on("exit", closeDB)
+process.on("SIGINT", closeDB)

@@ -1,0 +1,26 @@
+impor path dari "path"
+impor { unlinkSync } dari "fs"
+misal handler = asinkron (m, { usedPrefix, __dirname, args }) =>  {
+  misal ar = Objek.kunci(plugins)
+  misal ar1 = ar.petakan((v) => v.ganti(".js", ""))
+  jika (bukan args) {
+    lempar `uhm.. where the text?
+
+example:
+${usedPrefix + command} info`
+  }
+  jika (bukan ar1.berisi(args[0])) {
+    lempar `*🗃️ NOT FOUND!*
+==================================
+
+${ar1.petakan((v) => " " + v).join("\n")}`
+  }
+  tetap file = path.gabung(__dirname, "../plugins/" + args[0] + ".js")
+  unlinkSync(file)
+  conn.reply(m.chat, `Succes deleted "plugins/${args[0]}.js"`, m)
+}
+handler.help = ["dfp"]
+handler.tags = ["owner"]
+handler.command = /^(dfp)$/i
+handler.owner = benar
+ekspor bawaan handler

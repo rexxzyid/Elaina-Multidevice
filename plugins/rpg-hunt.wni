@@ -1,0 +1,64 @@
+misal handler = asinkron (m, { conn }) =>  {
+  misal monsters = [{ area: 1, name: "Goblin" }, { area: 1, name: "Slime" }, { area: 1, name: "Wolf" }, { area: 2, name: "Nymph" }, { area: 2, name: "Skeleton" }, { area: 2, name: "Wolf" }, { area: 3, name: "Baby Demon" }, { area: 3, name: "Ghost" }, { area: 3, name: "Zombie" }, { area: 4, name: "Imp" }, { area: 4, name: "Witch" }, { area: 4, name: "Zombie" }, { area: 5, name: "Ghoul" }, { area: 5, name: "Giant Scorpion" }, { area: 5, name: "Unicorn" }, { area: 6, name: "Baby Robot" }, { area: 6, name: "Sorcerer" }, { area: 6, name: "Unicorn" }, { area: 7, name: "Cecaelia" }, { area: 7, name: "Giant Piranha" }, { area: 7, name: "Mermaid" }, { area: 8, name: "Giant Crocodile" }, { area: 8, name: "Nereid" }, { area: 8, name: "Mermaid" }, { area: 9, name: "Demon" }, { area: 9, name: "Harpy" }, { area: 9, name: "Killer Robot" }, { area: 10, name: "Dullahan" }, { area: 10, name: "Manticore" }, { area: 10, name: "Killer Robot" }, { area: 11, name: "Baby Dragon" }, { area: 11, name: "Young Dragon" }, { area: 11, name: "Scaled Baby Dragon" }, { area: 12, name: "Kid Dragon" }, { area: 12, name: "Not so young Dragon" }, { area: 12, name: "Scaled Kid Dragon" }, { area: 13, name: "Definitely not so young Dragon" }, { area: 13, name: "Teen Dragon" }, { area: 13, name: "Scaled Teen Dragon" }]
+  misal player = global.db.data.users[m.sender]
+  misal pengirim = m.sender.pisah("@")[0]
+  misal __timers = baru Tanggal() - global.db.data.users[m.sender].lasthunt
+  misal _timers = 1200000 - __timers
+  misal timers = clockString(_timers)
+  misal area_monsters = monsters[Matematika.bawah(Matematika.acak() * monsters.panjang)]
+  misal monster = area_monsters.name
+  area_monsters = area_monsters.area
+  misal monsterName = monster.besar()
+  jika (baru Tanggal() - global.db.data.users[m.sender].lasthunt > 1200000) {
+    misal coins = uraiBulat(Matematika.bawah(Matematika.acak() * 100000))
+    misal exp = uraiBulat(Matematika.bawah(Matematika.acak() * 10000))
+    misal _healing = `${Matematika.bawah(Matematika.acak() * 100)}`.rapikan()
+    misal healing = _healing * 1
+    player.health -= healing
+    player.lasthunt = baru Tanggal() * 1
+    jika (player.health < 0) {
+      misal msg = `*@${pengirim}* Anda Mati Di Bunuh Oleh ${monsterName}`
+      jika (player.level > 0) {
+        jika (player.sword > 0) {
+          player.level -= 1
+          player.sword -= 5
+          player.exp -= exp * 1
+          msg += `
+Level Anda Turun 1 Karena Mati Saat Berburu!
+Sword Anda Berkurang 5 Karena Mati Saat Berburu!`
+        }
+      }
+      player.health = 100
+      tunggu conn.reply(m.chat, msg, m, { mentions: conn.parseMention(msg) })
+      kembalikan
+    }
+    player.money += coins * 1
+    player.exp += exp * 1
+    global.db.data.users[m.sender].tiketcoin += 1
+    misal pesan = `Berhasil Menemukan *${monsterName}*
+*@${pengirim}* Kamu Sudah Membunuhnya
+Mendapatkan:
+${baru Intl.NumberFormat("en-US").format(coins)} Money
+${baru Intl.NumberFormat("en-US").format(exp)} XP
+Berkurang -${healing} Health, Tersisa ${player.health} Health
+
++1 Tiketcoin`
+    tunggu conn.reply(m.chat, pesan, m, { mentions: conn.parseMention(pesan) })
+  } lainnya {
+    lempar `Tunggu ${timers} Untuk Berburu Lagi`
+  }
+}
+handler.help = ["hunter"]
+handler.tags = ["game"]
+handler.command = /^hunter/i
+handler.limit = benar
+handler.group = benar
+handler.fail = kosong
+ekspor bawaan handler
+fungsi clockString(ms) {
+  misal d = adalahNaN(ms) ? "--" : Matematika.bawah(ms / 86400000)
+  misal h = adalahNaN(ms) ? "--" : Matematika.bawah(ms / 3600000) % 24
+  misal m = adalahNaN(ms) ? "--" : Matematika.bawah(ms / 60000) % 60
+  misal s = adalahNaN(ms) ? "--" : Matematika.bawah(ms / 1000) % 60
+  kembalikan ["\n" + d, " *Hari*\n ", h, " *Jam*\n ", m, " *Menit*\n ", s, " *Detik* "].petakan((v) => v.toString().isiAwal(2, 0)).gabung("")
+}

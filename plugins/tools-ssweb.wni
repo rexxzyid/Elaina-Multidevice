@@ -1,0 +1,64 @@
+misal handler = asinkron (m, { conn, args }) =>  {
+  coba {
+    jika (bukan args[0]) {
+      lempar "*Example :* .ssweb https://sfile.mobi"
+    }
+    misal buff = tunggu ssweb.capture(args[0])
+    conn.sendMessage(m.chat, { image: buff }, { quoted: m })
+  } tangkap (e) {
+    m.reply(e.message)
+  }
+}
+handler.help = ["ssweb"]
+handler.command = ["ssweb"]
+handler.tags = ["tools"]
+ekspor bawaan handler
+tetap ssweb = { _static: Objek.bekukan({ baseUrl: "https://www.screenshotmachine.com", baseHeaders: { "content-encoding": "zstd" }, maxOutputLength: 200 }), pretyError(string) {
+  jika (bukan string) {
+    kembalikan "(empty message)"
+  }
+  misal message = ""
+  coba {
+    message = JSON.teks(string, kosong, 2)
+  } tangkap {
+    message = string
+  }
+  kembalikan message.panjang >= ini._static.maxOutputLength ? message.substring(0, ini._static.maxOutputLength) + " [trimmed]" : message
+}, asinkron getCookie() {
+  tetap r = tunggu fetch(ini._static.baseUrl, { headers: ini._static.baseHeaders })
+  jika (bukan r.ok) {
+    lempar Error(`${r.status} ${r.statusText} ${ini.pretyError(tunggu r.text())}`)
+  }
+  tetap cookie = r.headers.get("set-cookie")?.pisah(",").petakan((v) => v.pisah(";")[0]).gabung("; ") atau ""
+  jika (bukan cookie) {
+    lempar Error("gagal mendapatkan kuki")
+  }
+  kembalikan { cookie }
+}, asinkron getBuffer(reqObj, cookie) {
+  jika (reqObj.status != "success") {
+    lempar Error("status nya gak sukses")
+  }
+  tetap { link } = reqObj
+  tetap r = tunggu fetch(ini._static.baseUrl + "/" + link, { headers: { cookie } })
+  jika (bukan r.ok) {
+    lempar Error(`${r.status} ${r.statusText} ${ini.pretyError(tunggu r.text())}`)
+  }
+  tetap ab = tunggu r.arrayBuffer()
+  kembalikan { buffer: Buffer.from(ab) }
+}, asinkron req(url, cookie) {
+  tetap headers = { cookie, "content-type": "application/x-www-form-urlencoded; charset=UTF-8", ...ini._static.baseHeaders }
+  tetap r = tunggu fetch(ini._static.baseUrl + "/capture.php", { headers, body: "url=" + encodeURIComponent(url) + "&device=desktop&cacheLimit=0", method: "POST" })
+  jika (bukan r.ok) {
+    lempar Error(`${r.status} ${r.statusText} ${ini.pretyError(tunggu r.text())}`)
+  }
+  tetap reqObj = tunggu r.json()
+  kembalikan { reqObj }
+}, asinkron capture(url) {
+  jika (bukan url) {
+    lempar Error("param url gak boleh kosong")
+  }
+  tetap { cookie } = tunggu ini.getCookie()
+  tetap { reqObj } = tunggu ini.req(url, cookie)
+  tetap { buffer } = tunggu ini.getBuffer(reqObj, cookie)
+  kembalikan buffer
+} }

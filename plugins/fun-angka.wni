@@ -1,0 +1,28 @@
+misal handler = asinkron (m, { conn, args }) =>  {
+  tetap angkaUser = args[0]
+  tetap angkaValid = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]
+  jika (bukan angkaUser atau bukan angkaValid.berisi(angkaUser)) {
+    kembalikan conn.reply(m.chat, "⚠️ Masukkan angka antara 0 sampai 9!\nContoh: #angka 5", m)
+  }
+  tetap angkaBot = pickRandom(angkaValid)
+  tetap tebakanBenar = angkaUser == angkaBot
+  tetap bonus = tebakanBenar ? Matematika.bawah(Matematika.acak() * 201) + 100 : Matematika.bawah(Matematika.acak() * 100) + 1
+  global.db.data.users[m.sender].exp += bonus
+  misal hasil = `
+*「 🎲 TEBAK ANGKA 」*
+
+🎯 Angka Kamu : *${angkaUser}*
+🤖 Angka Bot  : *${angkaBot}*
+
+${tebakanBenar ? "✅ Tebakanmu **BENAR!**" : "❌ Tebakanmu **SALAH!**"}
+🎁 Kamu mendapatkan *+${bonus} XP!*
+`.rapikan()
+  conn.reply(m.chat, hasil, m)
+}
+handler.help = ["angka"]
+handler.tags = ["fun"]
+handler.command = /^angka$/i
+ekspor bawaan handler
+fungsi pickRandom(list) {
+  kembalikan list[Matematika.bawah(Matematika.acak() * list.panjang)]
+}

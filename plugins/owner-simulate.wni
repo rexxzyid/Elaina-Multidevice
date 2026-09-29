@@ -1,0 +1,41 @@
+misal handler = asinkron (m, { conn, usedPrefix, command, args: [event] }) =>  {
+  jika (bukan event) {
+    kembalikan tunggu conn.reply(m.chat, `contoh:
+${usedPrefix + command} welcome @user
+${usedPrefix + command} bye @user
+${usedPrefix + command} promote @user
+${usedPrefix + command} demote @user`.rapikan(), m)
+  }
+  misal part = m.mentionedJid[0] atau m.sender
+  misal act = salah
+  m.reply(`*Simulating ${event}...*`)
+  pilih (event.kecil()) {
+    kasus "add":
+    kasus "invite":
+    kasus "welcome":
+      act = "add"
+      henti
+    kasus "bye":
+    kasus "kick":
+    kasus "leave":
+    kasus "remove":
+      act = "remove"
+      henti
+    kasus "promote":
+      act = "promote"
+      henti
+    kasus "demote":
+      act = "demote"
+      henti
+    bawaan:
+      lempar eror
+  }
+  jika (act) {
+    kembalikan conn.participantsUpdate({ id: m.chat, participants: [{ id: part }], action: act, simulate: benar })
+  }
+}
+handler.help = ["simulate"]
+handler.tags = ["owner"]
+handler.owner = benar
+handler.command = /^(simulate|simulasi)$/i
+ekspor bawaan handler

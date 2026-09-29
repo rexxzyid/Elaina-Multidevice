@@ -1,0 +1,112 @@
+impor PDFDocument dari "pdfkit"
+impor sizeOf dari "image-size"
+tetap BASE = "https://api.shngm.io/v1"
+misal handler = asinkron (m, { conn, text, args, usedPrefix, command }) =>  {
+  jika (bukan text) {
+    lempar "❌ Masukkan judul manhwa"
+  }
+  tetap cmd = usedPrefix + command
+  tetap type = args[0]
+  jika (type == "detail") {
+    misal [id, page = 1] = args[1].pisah("|")
+    page = Angka(page)
+    tetap detail = tunggu getJSON(`${BASE}/manga/detail/${id}`)
+    tetap chapters = tunggu getJSON(`${BASE}/chapter/${id}/list?page=${page}&page_size=10&sort_by=chapter_number&sort_order=asc`)
+    tetap d = detail.data
+    tetap getNames = (key) => d.taxonomy[key].petakan((v) => v.name).gabung(", ") atau "-"
+    tetap detailText = `
+📘 *${d.title}*
+🈶 ${d.alternative_title atau "-"}
+
+⭐ Rating: *${d.user_rate}*
+👀 Views: *${d.view_count.keTeksIndonesia()}*
+🏆 Rank: *${d.rank}*
+
+📅 Rilis: *${d.release_year}*
+🌍 Negara: *${d.country_id}*
+
+👤 Author: *${getNames("Author")}*
+🎨 Artist: *${getNames("Artist")}*
+🏷️ Genre: *${getNames("Genre")}*
+
+📝 *Sinopsis*:
+${d.description}
+`.rapikan()
+    misal rows = chapters?.data?.petakan((v) => ({ title: `Chapter ${v.chapter_number}`, description: baru Tanggal(v.release_date).toLocaleDateString("id-ID"), id: `${cmd} read ${v.chapter_id}` }))
+    jika (page > 1) {
+      rows.tambah({ title: "⬅️ Prev Page", description: `Halaman ${page - 1}`, id: `${cmd} detail ${id}|${page - 1}` })
+    }
+    jika (page < chapters.meta.total_page) {
+      rows.tambah({ title: "➡️ Next Page", description: `Halaman ${page + 1}`, id: `${cmd} detail ${id}|${page + 1}` })
+    }
+    kembalikan conn.sendButton(m.chat, { image: { url: d.cover_image_url }, text: detailText, title: d.title, footer: `Page ${page}/${chapters.meta.total_page atau "1"}`, buttons: [{ name: "single_select", buttonParamsJson: JSON.teks({ title: "📖 Pilih Chapter", sections: [{ title: "Daftar Chapter", rows }] }) }] }, { quoted: m })
+  }
+  jika (type == "read") {
+    coba {
+      tetap chapterId = args[1]
+      tunggu m.reply("🔁 Membuat PDF...")
+      tetap res = tunggu getJSON(`${BASE}/chapter/detail/${chapterId}`)
+      tetap c = res.data
+      tetap pdf = tunggu toPDF(c.chapter.data, c.base_url, c.chapter.path)
+      kembalikan conn.sendMessage(m.chat, { document: pdf, mimetype: "application/pdf", fileName: `${c.manga_id}-chapter-${c.chapter_number}.pdf`, caption: `📖 Chapter ${c.chapter_number}` }, { quoted: m })
+    } tangkap (e) {
+      kembalikan m.reply(e.message)
+    }
+  }
+  misal [query, page = 1] = text.pisah("|")
+  page = Angka(page)
+  tetap res = tunggu getJSON(`${BASE}/manga/list?page=${page}&page_size=15&q=${encodeURIComponent(query)}`)
+  jika (bukan res.data?.panjang) {
+    lempar `"${query}" tidak ditemukan`
+  }
+  misal rows = res.data.petakan((v) => ({ title: v.title, description: `⭐ ${v.user_rate} | 👀 ${v.view_count.keTeksIndonesia()}`, id: `${cmd} detail ${v.manga_id}|1` }))
+  jika (page > 1) {
+    rows.tambah({ title: "⬅️ Prev Page", description: `Halaman ${page - 1}`, id: `${cmd} ${query}|${page - 1}` })
+  }
+  jika (page < res.meta.total_page) {
+    rows.tambah({ title: "➡️ Next Page", description: `Halaman ${page + 1}`, id: `${cmd} ${query}|${page + 1}` })
+  }
+  kembalikan conn.sendButton(m.chat, { text: `🔎 *Hasil Pencarian* "${query}"
+${res.data.panjang} ditemukan`, title: "MANHWA SEARCH", footer: `Page ${page}/${res.meta.total_page}`, buttons: [{ name: "single_select", buttonParamsJson: JSON.teks({ title: "📚 Pilih Manhwa", sections: [{ title: "Hasil", rows }] }) }] }, { quoted: m })
+}
+handler.help = ["shinigami"]
+handler.tags = ["internet"]
+handler.command = ["shinigami"]
+ekspor bawaan handler
+asinkron fungsi getJSON(url) {
+  tetap res = tunggu fetch(url)
+  jika (bukan res.ok) {
+    lempar baru Error(`Fetch error ${res.status} ${res.statusText}`)
+  }
+  kembalikan res.json()
+}
+asinkron fungsi getBuffer(url) {
+  tetap res = tunggu fetch(url, { headers: { "user-agent": "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Mobile Safari/537.36" } })
+  jika (bukan res.ok) {
+    lempar baru Error(`Image fetch error ${res.status} ${res.statusText}`)
+  }
+  kembalikan Buffer.from(tunggu res.arrayBuffer())
+}
+fungsi drawImageAutoSize(doc, img) {
+  tetap { width, height } = sizeOf(img)
+  doc.addPage({ size: [width, height], margin: 0 })
+  doc.image(img, 0, 0, { width, height })
+}
+asinkron fungsi toPDF(images, baseUrl, path) {
+  tetap doc = baru PDFDocument({ autoFirstPage: salah })
+  tetap buffers = []
+  doc.on("data", (b) => buffers.tambah(b))
+  untuk (tetap imgName dari images) {
+    jika (/\.(webp|gif)$/i.uji(imgName)) {
+      lanjut
+    }
+    tetap img = tunggu getBuffer(`${baseUrl}${path}${imgName}`)
+    drawImageAutoSize(doc, img)
+  }
+  doc.end()
+  tunggu baru Janji((resolve, reject) =>  {
+    doc.on("end", resolve)
+    doc.on("error", reject)
+  })
+  kembalikan Buffer.sambat(buffers)
+}

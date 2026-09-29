@@ -1,0 +1,38 @@
+misal handler = asinkron (m, { conn }) =>  {
+  misal dapat = Matematika.bawah(Matematika.acak() * 100000)
+  misal who = m.mentionedJid[0]
+  jika (bukan who) {
+    lempar "Tag Orang Yang Ingin Kamu Rampok"
+  }
+  jika (jenisdari db.data.users[who] == "undefined") {
+    lempar "Pengguna Tidak Ada Didalam Database"
+  }
+  misal now = Tanggal.now()
+  misal _timers = now - global.db.data.users[m.sender].lastrampok
+  misal timers = clockString(3600000 - _timers)
+  misal users = global.db.data.users
+  jika (now - global.db.data.users[m.sender].lastrampok > 3600000) {
+    jika (10000 > users[who].money) {
+      lempar "Orang Yang Kamu Tag, Tidak Memiliki Uang\nApakah Kamu Tidak Kasihan?"
+    }
+    users[who].money -= dapat
+    users[m.sender].money += dapat
+    global.db.data.users[m.sender].lastrampok = now
+    conn.reply(m.chat, `Berhasil Merampok Uangnya Dan Kamu Mendapatkan Rp.${dapat}`, m)
+  } lainnya {
+    conn.reply(m.chat, `Kamu Sudah Merampok Dan Berhasil Sembunyi , Tunggu ${timers} Untuk Merampok Lagi`, m)
+  }
+}
+handler.help = ["merampok"]
+handler.tags = ["rpg"]
+handler.command = /^merampok|rob$/
+handler.limit = benar
+handler.group = benar
+ekspor bawaan handler
+fungsi clockString(ms) {
+  misal d = adalahNaN(ms) ? "--" : Matematika.bawah(ms / 86400000)
+  misal h = adalahNaN(ms) ? "--" : Matematika.bawah(ms / 3600000) % 24
+  misal m = adalahNaN(ms) ? "--" : Matematika.bawah(ms / 60000) % 60
+  misal s = adalahNaN(ms) ? "--" : Matematika.bawah(ms / 1000) % 60
+  kembalikan ["\n" + d, " *Hari*\n ", h, " *Jam*\n ", m, " *Menit*\n ", s, " *Detik* "].petakan((v) => v.toString().isiAwal(2, 0)).gabung("")
+}

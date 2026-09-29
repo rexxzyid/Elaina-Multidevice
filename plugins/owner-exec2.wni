@@ -1,0 +1,29 @@
+impor cp, { exec sebagai _exec } dari "child_process"
+impor { promisify } dari "util"
+misal exec = promisify(_exec).bind(cp)
+misal handler = asinkron (m, { conn, command, text }) =>  {
+  jika (global.conn.user.jid != conn.user.jid) {
+    kembalikan
+  }
+  tetap { key } = tunggu m.reply("Executing...")
+  misal o
+  coba {
+    o = tunggu exec(command.rapikanAwal() + " " + text.rapikanAkhir())
+  } tangkap (e) {
+    o = e
+  } akhirnya {
+    misal { stdout, stderr } = o
+    jika (stdout.rapikan()) {
+      m.edit(stdout, key)
+    }
+    jika (stderr.rapikan()) {
+      m.reply(stderr)
+    }
+  }
+}
+handler.help = ["$"]
+handler.tags = ["owner"]
+handler.customPrefix = /^[$] /
+handler.command = baru RegEx()
+handler.owner = benar
+ekspor bawaan handler

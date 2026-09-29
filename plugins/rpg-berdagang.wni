@@ -1,0 +1,63 @@
+misal handler = asinkron (m) =>  {
+  tetap dapat = Matematika.bawah(Matematika.acak() * 5000)
+  tetap who = m.mentionedJid[0]
+  jika (bukan who) {
+    lempar "Tag salah satu lah, yang kamu ingin berdagang bareng"
+  }
+  jika (bukan global.db.data.users[who]) {
+    kembalikan m.reply("Pengguna tidak ada didalam data base")
+  }
+  tetap user = global.db.data.users[m.sender]
+  tetap partner = global.db.data.users[who]
+  tetap now = Tanggal.now()
+  tetap _timers = now - user.lastdagang
+  tetap timers = clockString(28800000 - _timers)
+  jika (now - user.lastdagang < 28800000) {
+    kembalikan m.reply(`Anda sudah berdagang, tunggu ${timers} lagi.`)
+  }
+  jika (partner.money < 5000) {
+    lempar "Target tidak memiliki modal, minimal 5000"
+  }
+  jika (user.money < 5000) {
+    lempar "Kamu tidak memiliki modal, minimal 5000"
+  }
+  partner.money -= dapat
+  user.money -= dapat
+  partner.lastdagang = now
+  user.lastdagang = now
+  m.reply(`
+Mohon tunggu kak..
+Kamu dan @${who.pisah("@")[0]} sedang berdagang...
+Kedua pihak meletakkan modal: -${dapat}
+        `.rapikan())
+  aturWaktu(() =>  {
+    user.money += 15000
+    partner.money += 15000
+    m.reply(`
+Selamat! Hasil dagang pertama telah keluar.
+
+Kamu mendapat +15000 (Total: ${user.money})
+@${who.pisah("@")[0]} mendapat +15000 (Total: ${partner.money})`)
+  }, 3600000)
+  aturWaktu(() =>  {
+    user.money += 15000
+    partner.money += 15000
+    m.reply(`
+Selamat! Hasil dagang kedua telah keluar.
+
+Kamu mendapat +15000 (Total: ${user.money})
+@${who.pisah("@")[0]} mendapat +15000 (Total: ${partner.money})`)
+  }, 7200000)
+}
+handler.help = ["berdagang"]
+handler.tags = ["rpg"]
+handler.command = /^berdagang$/i
+handler.register = benar
+handler.group = benar
+ekspor bawaan handler
+fungsi clockString(ms) {
+  misal h = Matematika.bawah(ms / 3600000)
+  misal m = Matematika.bawah(ms / 60000) % 60
+  misal s = Matematika.bawah(ms / 1000) % 60
+  kembalikan [h, m, s].petakan((v) => v.toString().isiAwal(2, 0)).gabung(":")
+}

@@ -1,0 +1,17 @@
+impor { parentPort } dari "worker_threads"
+misal handler = asinkron (m, { conn }) =>  {
+  jika (bukan parentPort) {
+    lempar "Dont: node main.js\nDo: node index.js"
+  }
+  jika (global.conn.user.jid == conn.user.jid) {
+    tunggu m.reply("```R E S T A R T . . .```")
+    parentPort.postMessage("restart")
+  } lainnya {
+    lempar "_eeeeeiiittsssss..._"
+  }
+}
+handler.help = ["restart"]
+handler.tags = ["owner"]
+handler.command = /^(res(tart)?)$/i
+handler.owner = benar
+ekspor bawaan handler

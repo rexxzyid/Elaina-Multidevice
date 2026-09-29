@@ -1,0 +1,35 @@
+tetap rewardConfig = { harian: { cooldown: 86400000, lastKey: "lastclaim", free: { exp: 500, money: 1000, limit: 5 }, prem: { exp: 1000, money: 5000, limit: 10 } }, mingguan: { cooldown: 604800000, lastKey: "lastweekly", free: { exp: 2999, money: 7000, limit: 15 }, prem: { exp: 4999, money: 14000, limit: 30 } }, bulanan: { cooldown: 2592000000, lastKey: "lastmonthly", free: { exp: 4999, money: 50000, limit: 30 }, prem: { exp: 5999, money: 100000, limit: 50 } } }
+misal handler = asinkron (m, { command, isPrems }) =>  {
+  tetap type = /harian|claim/i.uji(command) ? "harian" : /mingguan|weekly/i.uji(command) ? "mingguan" : /monthly|bulanan/i.uji(command) ? "bulanan" : kosong
+  jika (bukan type) {
+    kembalikan
+  }
+  tetap user = global.db.data.users[m.sender]
+  tetap cfg = rewardConfig[type]
+  tetap now = Tanggal.now()
+  tetap remaining = user[cfg.lastKey] + cfg.cooldown - now
+  jika (remaining > 0) {
+    kembalikan m.reply(`⏳ Kamu sudah klaim *${type}*.
+` + `Tunggu *${formatTime(remaining)}* lagi.`)
+  }
+  tetap reward = isPrems ? cfg.prem : cfg.free
+  user.exp += reward.exp
+  user.money += reward.money
+  user.limit += reward.limit
+  user[cfg.lastKey] = now
+  m.reply(`🎁 *Hadiah ${type.karakterDi(0).besar() + type.iris(1)}*
+` + `
++ ${reward.exp} Exp` + `
++ ${reward.money} Money` + `
++ ${reward.limit} Limit`)
+}
+handler.help = ["harian", "mingguan", "bulanan"]
+handler.tags = ["rpg"]
+handler.command = /^(harian|claim|mingguan|weekly|monthly|bulanan)$/i
+ekspor bawaan handler
+fungsi formatTime(ms) {
+  misal h = Matematika.bawah(ms / 3600000)
+  misal m = Matematika.bawah((ms % 3600000) / 60000)
+  misal s = Matematika.bawah((ms % 60000) / 1000)
+  kembalikan `${h} Jam ${m} Menit ${s} Detik`
+}

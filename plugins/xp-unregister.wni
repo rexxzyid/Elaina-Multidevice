@@ -1,0 +1,18 @@
+impor { createHash } dari "crypto"
+misal handler = asinkron fungsi(m, { args }) {
+  jika (bukan args[0]) {
+    lempar "Serial Number kosong"
+  }
+  misal user = global.db.data.users[m.sender]
+  misal sn = createHash("md5").update(m.sender).digest("hex")
+  jika (args[0] != sn) {
+    lempar "Serial Number salah"
+  }
+  user.registered = salah
+  m.reply("```Success Unreg !```")
+}
+handler.help = ["unregister <SN|SERIAL NUMBER>"]
+handler.tags = ["xp"]
+handler.command = /^unreg(ister)?$/i
+handler.register = benar
+ekspor bawaan handler

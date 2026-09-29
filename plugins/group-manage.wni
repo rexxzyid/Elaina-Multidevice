@@ -1,0 +1,72 @@
+tetap handler = asinkron (m, { text, participants, groupMetadata, command }) =>  {
+  tetap target = m.quoted ? m.quoted.sender : m.mentionedJid dan m.mentionedJid[0] ? m.mentionedJid[0] : text ? text.ganti(/[^0-9]/g, "") + "@s.whatsapp.net" : kosong
+  tetap cmd = ["add", "kick", "promote", "demote"]
+  jika (cmd.berisi(command) dan bukan target) {
+    lempar "Reply/tag siapa yang ingin di proses."
+  }
+  tetap inGc = participants.beberapa((v) => v.jid == target atau v.id == target atau v.phoneNumber == target)
+  pilih (command) {
+    kasus "add":
+      {
+        jika (inGc) {
+          lempar "User sudah ada didalam grup!"
+        }
+        tetap response = tunggu conn.groupParticipantsUpdate(m.chat, [target], "add")
+        tetap jpegThumbnail = tunggu conn.profilePictureUrl(m.chat, "image", "buffer")
+        untuk (tetap participant dari response) {
+          tetap jid = participant.content.attrs.phone_number atau participant.content.attrs.jid
+          tetap status = participant.status
+          jika (status == "408") {
+            m.reply(`Tidak dapat menambahkan @${jid.pisah("@")[0]}!
+Mungkin @${jid.pisah("@")[0]} baru keluar dari grup ini atau dikick`)
+          } lainnya jika (status == "403") {
+            tetap inviteCode = participant.content.content[0].attrs.code
+            tetap inviteExp = participant.content.content[0].attrs.expiration
+            tunggu m.reply(`Mengundang @${jid.pisah("@")[0]} menggunakan invite...`)
+            tunggu conn.sendGroupV4Invite(m.chat, jid, inviteCode, inviteExp, groupMetadata.subject, "Undangan untuk bergabung ke grup WhatsApp saya", jpegThumbnail)
+          }
+        }
+      }
+      henti
+    kasus "kick":
+      jika (bukan inGc) {
+        lempar "User tidak ada dalam grup."
+      }
+      conn.groupParticipantsUpdate(m.chat, [target], "remove")
+      m.reply(`Berhasil kick: @${target.pisah("@")[0]}`)
+      henti
+    kasus "promote":
+      jika (bukan inGc) {
+        lempar "User tidak berada dalam grup!"
+      }
+      conn.groupParticipantsUpdate(m.chat, [target], "promote")
+      m.reply(`Promote: @${target.pisah("@")[0]}`)
+      henti
+    kasus "demote":
+      jika (bukan inGc) {
+        lempar "User tidak berada dalam grup!"
+      }
+      conn.groupParticipantsUpdate(m.chat, [target], "demote")
+      m.reply(`Demote: @${target.pisah("@")[0]}`)
+      henti
+    kasus "closegc":
+    kasus "mute":
+      conn.groupSettingUpdate(m.chat, "announcement")
+      m.reply("Grup berhasil ditutup (hanya admin yang bisa chat).")
+      henti
+    kasus "opengc":
+    kasus "unmute":
+      conn.groupSettingUpdate(m.chat, "not_announcement")
+      m.reply("Grup berhasil dibuka (semua member bisa chat).")
+      henti
+    bawaan:
+      kembalikan m.reply("Perintah tidak dikenal.")
+  }
+}
+handler.help = ["add", "kick", "promote", "demote", "opengc", "closegc"]
+handler.tags = ["group"]
+handler.command = /^(add|kick|promote|demote|mute|unmute|opengc|closegc)$/i
+handler.admin = benar
+handler.group = benar
+handler.botAdmin = benar
+ekspor bawaan handler

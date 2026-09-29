@@ -1,0 +1,26 @@
+misal handler = asinkron (m, { text, usedPrefix, command }) =>  {
+  jika (bukan m.quoted) {
+    lempar `Balas stiker dengan perintah *${usedPrefix + command}*`
+  }
+  jika (bukan m.quoted.fileSha256) {
+    lempar "SHA256 Hash Missing"
+  }
+  jika (bukan text) {
+    lempar `Penggunaan:
+${usedPrefix + command} <teks>
+
+Contoh:
+${usedPrefix + command} tes`
+  }
+  misal sticker = db.data.sticker
+  misal hash = m.quoted.fileSha256
+  jika (sticker[hash] dan sticker[hash].locked) {
+    lempar "Kamu tidak memiliki izin untuk mengubah perintah stiker ini"
+  }
+  sticker[hash] = { text, mentionedJid: m.mentionedJid, creator: m.sender, at: Tanggal.now(), locked: salah }
+  m.reply(`Success!`)
+}
+handler.help = ["setcmd <teks>"]
+handler.tags = ["database"]
+handler.command = ["setcmd"]
+ekspor bawaan handler

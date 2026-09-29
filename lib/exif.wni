@@ -1,0 +1,57 @@
+impor fs dari "fs"
+impor { tmpdir } dari "os"
+impor Crypto dari "crypto"
+impor ff dari "fluent-ffmpeg"
+impor webp dari "node-webpmux"
+impor path dari "path"
+tetap temp = process.platform == "win32" ? process.env.TEMP : tmpdir()
+ekspor asinkron fungsi imageToWebp(media) {
+  tetap tmpFileIn = path.gabung(temp, `${Crypto.randomBytes(6).readUIntLE(0, 6).toString(36)}.${media?.ext atau "png"}`)
+  tetap tmpFileOut = path.gabung(temp, `${Crypto.randomBytes(6).readUIntLE(0, 6).toString(36)}.webp`)
+  fs.writeFileSync(tmpFileIn, media.data)
+  coba {
+    tunggu baru Janji((resolve, reject) =>  {
+      ff(tmpFileIn).on("error", reject).on("end", () => resolve(benar)).addOutputOptions(["-vcodec", "libwebp", "-vf", "scale='min(320,iw)':min'(320,ih)':force_original_aspect_ratio=decrease,fps=15, pad=320:320:-1:-1:color=white@0.0, split [a][b]; [a] palettegen=reserve_transparent=on:transparency_color=000000 [p]; [b][p] paletteuse"]).toFormat("webp").saveToFile(tmpFileOut)
+    })
+    fs.promises.unlink(tmpFileIn)
+    tetap buff = fs.readFileSync(tmpFileOut)
+    fs.promises.unlink(tmpFileOut)
+    kembalikan buff
+  } tangkap (e) {
+    fs.existsSync(tmpFileIn) ? fs.promises.unlink(tmpFileIn) : ""
+    fs.existsSync(tmpFileOut) ? fs.promises.unlink(tmpFileOut) : ""
+    lempar e
+  }
+}
+ekspor asinkron fungsi videoToWebp(media) {
+  tetap tmpFileIn = path.gabung(temp, `${Crypto.randomBytes(6).readUIntLE(0, 6).toString(36)}.${media?.ext atau "mp4"}`)
+  tetap tmpFileOut = path.gabung(temp, `${Crypto.randomBytes(6).readUIntLE(0, 6).toString(36)}.webp`)
+  fs.writeFileSync(tmpFileIn, media.data)
+  coba {
+    tunggu baru Janji((resolve, reject) =>  {
+      ff(tmpFileIn).on("error", reject).on("end", () => resolve(benar)).addOutputOptions(["-vcodec", "libwebp", "-vf", "scale='min(320,iw)':min'(320,ih)':force_original_aspect_ratio=decrease,fps=15, pad=320:320:-1:-1:color=white@0.0, split [a][b]; [a] palettegen=reserve_transparent=on:transparency_color=000000 [p]; [b][p] paletteuse", "-loop", "0", "-ss", "00:00:00", "-t", "00:00:05", "-preset", "default", "-an", "-vsync", "0"]).toFormat("webp").saveToFile(tmpFileOut)
+    })
+    fs.promises.unlink(tmpFileIn)
+    tetap buff = fs.readFileSync(tmpFileOut)
+    fs.promises.unlink(tmpFileOut)
+    kembalikan buff
+  } tangkap (e) {
+    fs.existsSync(tmpFileIn) ? fs.promises.unlink(tmpFileIn) : ""
+    fs.existsSync(tmpFileOut) ? fs.promises.unlink(tmpFileOut) : ""
+    lempar e
+  }
+}
+ekspor asinkron fungsi writeExif(media, metadata) {
+  misal wMedia = /webp/.uji(media.mimetype) ? media.data : /image/.uji(media.mimetype) ? tunggu imageToWebp(media) : /video/.uji(media.mimetype) ? tunggu videoToWebp(media) : ""
+  jika (metadata dan Objek?.kunci(metadata).panjang != 0) {
+    tetap img = baru webp.Image()
+    tetap json = { "sticker-pack-id": metadata?.packId atau `hisoka-${Tanggal.now()}`, "sticker-pack-name": metadata?.packName atau "", "sticker-pack-publisher": metadata?.packPublish atau "", "android-app-store-link": metadata?.androidApp atau "https://play.google.com/store/apps/details?id=com.bitsmedia.android.muslimpro", "ios-app-store-link": metadata?.iOSApp atau "https://apps.apple.com/id/app/muslim-pro-al-quran-adzan/id388389451?|=id", emojis: metadata?.emojis atau ["😋", "😎", "🤣", "😂", "😁"], "is-avatar-sticker": metadata?.isAvatar atau 0 }
+    tetap exifAttr = Buffer.from([73, 73, 42, 0, 8, 0, 0, 0, 1, 0, 65, 87, 7, 0, 0, 0, 0, 0, 22, 0, 0, 0])
+    tetap jsonBuff = Buffer.from(JSON.teks(json), "utf-8")
+    tetap exif = Buffer.sambat([exifAttr, jsonBuff])
+    exif.writeUIntLE(jsonBuff.panjang, 14, 4)
+    tunggu img.load(wMedia)
+    img.exif = exif
+    kembalikan tunggu img.save(kosong)
+  }
+}

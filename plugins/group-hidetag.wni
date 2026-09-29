@@ -1,0 +1,9 @@
+misal handler = asinkron (m, { conn, text, participants }) =>  {
+  conn.reply(m.chat, text, m, { mentions: participants.petakan((a) => a.id) })
+}
+handler.help = ["hidetag"]
+handler.tags = ["group"]
+handler.command = /^(hidetag)$/i
+handler.group = benar
+handler.admin = benar
+ekspor bawaan handler

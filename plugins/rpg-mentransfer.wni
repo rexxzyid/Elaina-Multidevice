@@ -1,0 +1,291 @@
+misal handler = asinkron (m, { conn, args, usedPrefix }) =>  {
+  jika (args.panjang < 3) {
+    kembalikan conn.reply(m.chat, `Contoh: *${usedPrefix}transfer money 100 @tag*
+
+*List Yang Bisa Di Transfer :*
+•》Money
+• Tabungan
+• Potion
+• Sampah
+• Diamond
+• Common
+• Uncommon
+• Mythic
+• Legendary
+• String
+🪵 Kayu
+• Batu
+• Iron`.rapikan(), m)
+  } lainnya {
+    coba {
+      misal type = (args[0] atau "").kecil()
+      misal count = args[1] dan args[1].panjang > 0 ? Matematika.min(9999999, Matematika.maks(uraiBulat(args[1]), 1)) : Matematika.min(1)
+      misal who = m.mentionedJid ? m.mentionedJid[0] : args[2].ganti(/[@ .+-]/g, "").ganti(" ", "") + "@s.whatsapp.net"
+      jika (bukan m.mentionedJid atau bukan args[2]) {
+        lempar "Tag Salah Satu, Atau Ketik Nomernya!!"
+      }
+      pilih (type) {
+        kasus "money":
+        kasus "uang":
+          jika (global.db.data.users[m.sender].money >= count * 1) {
+            coba {
+              global.db.data.users[m.sender].money -= count * 1
+              global.db.data.users[who].money += count * 1
+              conn.reply(m.chat, `Berhasil Mentransfer Uang Sebesar ${count}`.rapikan(), m)
+            } tangkap (e) {
+              global.db.data.users[m.sender].money += count * 1
+              m.reply("Gagal Menstransfer")
+              Konsol.cetak(e)
+            }
+          } lainnya {
+            conn.reply(m.chat, `Uang Kamu Tidak Mencukupi Untuk Mentransfer Sebesar ${count}`.rapikan(), m)
+          }
+          henti
+        kasus "tabungan":
+        kasus "atm":
+          jika (global.db.data.users[m.sender].atm >= count * 1) {
+            coba {
+              global.db.data.users[m.sender].atm -= count * 1
+              global.db.data.users[who].atm += count * 1
+              conn.reply(m.chat, `Berhasil Mentransfer Uang Dari Bank Sebesar ${count}`.rapikan(), m)
+            } tangkap (e) {
+              global.db.data.users[m.sender].atm += count * 1
+              m.reply("Gagal Menstransfer")
+              Konsol.cetak(e)
+            }
+          } lainnya {
+            conn.reply(m.chat, `Tidak Mencukupi Untuk mentransfer Uang Dari Bank Sebesar ${count}`.rapikan(), m)
+          }
+          henti
+        kasus "limit":
+          jika (global.db.data.users[m.sender].limit >= count * 1) {
+            coba {
+              global.db.data.users[m.sender].limit -= count * 1
+              global.db.data.users[who].limit += count * 1
+              conn.reply(m.chat, `Berhasil Mentransfer Limit Sebesar ${count}`.rapikan(), m)
+            } tangkap (e) {
+              [m.sender].limit += count * 1
+              m.reply("Gagal Menstransfer")
+              Konsol.cetak(e)
+            }
+          } lainnya {
+            conn.reply(m.chat, `Limit Kamu Tidak Mencukupi Untuk Mentransfer Sebesar ${count} Limit`.rapikan(), m)
+          }
+          henti
+        kasus "potion":
+          jika (global.db.data.users[m.sender].potion >= count * 1) {
+            coba {
+              global.db.data.users[m.sender].potion -= count * 1
+              global.db.data.users[who].potion += count * 1
+              conn.reply(m.chat, `Berhasil Mentransfer ${count} Potion`.rapikan(), m)
+            } tangkap (e) {
+              global.db.data.users[m.sender].potion += count * 1
+              m.reply("Gagal Menstransfer")
+              Konsol.cetak(e)
+            }
+          } lainnya {
+            conn.reply(m.chat, `Potion Kamu Tidak Cukup`.rapikan(), m)
+          }
+          henti
+        kasus "sampah":
+        kasus "trash":
+          jika (global.db.data.users[m.sender].sampah >= count * 1) {
+            coba {
+              global.db.data.users[m.sender].sampah -= count * 1
+              global.db.data.users[who].sampah += count * 1
+              conn.reply(m.chat, `Berhasil Mentransfer ${count} Sampah`.rapikan(), m)
+            } tangkap (e) {
+              global.db.data.users[m.sender].sampah += count * 1
+              m.reply("Gagal Menstransfer")
+              Konsol.cetak(e)
+            }
+          } lainnya {
+            conn.reply(m.chat, `Sampah Kamu Tidak Cukup`.rapikan(), m)
+          }
+          henti
+        kasus "diamond":
+          jika (global.db.data.users[m.sender].diamond >= count * 1) {
+            coba {
+              global.db.data.users[m.sender].diamond -= count * 1
+              global.db.data.users[who].diamond += count * 1
+              conn.reply(m.chat, `Berhasil Mentransfer ${count} Diamond`.rapikan(), m)
+            } tangkap (e) {
+              global.db.data.users[m.sender].diamond += count * 1
+              m.reply("Gagal Menstransfer")
+              Konsol.cetak(e)
+            }
+          } lainnya {
+            conn.reply(m.chat, `Diamond Kamu Tidak Cukup`.rapikan(), m)
+          }
+          henti
+        kasus "common":
+          jika (global.db.data.users[m.sender].common >= count * 1) {
+            coba {
+              global.db.data.users[m.sender].common -= count * 1
+              global.db.data.users[who].common += count * 1
+              conn.reply(m.chat, `Berhasil Mentransfer ${count} Common Crate`.rapikan(), m)
+            } tangkap (e) {
+              global.db.data.users[m.sender].common += count * 1
+              m.reply("Gagal Menstransfer")
+              Konsol.cetak(e)
+            }
+          } lainnya {
+            conn.reply(m.chat, `Common Crate Kamu Tidak Cukup`.rapikan(), m)
+          }
+          henti
+        kasus "uncommon":
+          jika (global.db.data.users[m.sender].uncommon >= count * 1) {
+            coba {
+              global.db.data.users[m.sender].uncommon -= count * 1
+              global.db.data.users[who].uncommon += count * 1
+              conn.reply(m.chat, `Berhasil Mentransfer ${count} Uncommon Crate`.rapikan(), m)
+            } tangkap (e) {
+              global.db.data.users[m.sender].uncommon += count * 1
+              m.reply("Gagal Menstransfer")
+              Konsol.cetak(e)
+              jika (DevMode) {
+                untuk (misal jid dari global.owner.petakan((v) => v.ganti(/[^0-9]/g, "") + "@s.whatsapp.net").saring((v) => v != conn.user.jid)) {
+                  conn.reply(jid, "Transfer.js error\nNo: *" + m.sender.split("@")[0] + "*\nCommand: *" + m.text + "*\n\n*" + e + "*", m)
+                }
+              }
+            }
+          } lainnya {
+            conn.reply(m.chat, `Uncommon Crate Kamu Tidak Cukup`.rapikan(), m)
+          }
+          henti
+        kasus "mythic":
+          jika (global.db.data.users[m.sender].mythic >= count * 1) {
+            coba {
+              global.db.data.users[m.sender].mythic -= count * 1
+              global.db.data.users[who].mythic += count * 1
+              conn.reply(m.chat, `Berhasil Mentransfer ${count} Mythic Crate`.rapikan(), m)
+            } tangkap (e) {
+              global.db.data.users[m.sender].mythic += count * 1
+              m.reply("Gagal Menstransfer")
+              Konsol.cetak(e)
+            }
+          } lainnya {
+            conn.reply(m.chat, `Mythic Crate Kamu Tidak Cukup`.rapikan(), m)
+          }
+          henti
+        kasus "legendary":
+          jika (global.db.data.users[m.sender].legendary >= count * 1) {
+            coba {
+              global.db.data.users[m.sender].legendary -= count * 1
+              global.db.data.users[who].legendary += count * 1
+              conn.reply(m.chat, `Berhasil Mentransfer ${count} Legendary Crate`.rapikan(), m)
+            } tangkap (e) {
+              global.db.data.users[m.sender].legendary += count * 1
+              m.reply("Gagal Menstransfer")
+              Konsol.cetak(e)
+            }
+          } lainnya {
+            conn.reply(m.chat, `Legendary Crate Kamu Tiidak Cukup`.rapikan(), m)
+          }
+          henti
+        kasus "string":
+          jika (global.db.data.users[m.sender].string >= count * 1) {
+            coba {
+              global.db.data.users[m.sender].string -= count * 1
+              global.db.data.users[who].string += count * 1
+              conn.reply(m.chat, `Berhasil Mentransfer String Sebesar ${count}`.rapikan(), m)
+            } tangkap (e) {
+              global.db.data.users[m.sender].string += count * 1
+              m.reply("Gagal Menstransfer")
+              Konsol.cetak(e)
+            }
+          } lainnya {
+            conn.reply(m.chat, `String Kamu Tidak Mencukupi Untuk Mentransfer String Sebesar ${count}`.rapikan(), m)
+          }
+          henti
+        kasus "batu":
+        kasus "rock":
+          jika (global.db.data.users[m.sender].rock >= count * 1) {
+            coba {
+              global.db.data.users[m.sender].rock -= count * 1
+              global.db.data.users[who].rock += count * 1
+              conn.reply(m.chat, `Berhasil Mentransfer Batu Sebesar ${count}`.rapikan(), m)
+            } tangkap (e) {
+              global.db.data.users[m.sender].rock += count * 1
+              m.reply("Gagal Menstransfer")
+              Konsol.cetak(e)
+            }
+          } lainnya {
+            conn.reply(m.chat, `Batu Kamu Tidak Mencukupi Untuk Mentransfer Batu Sebesar ${count}`.rapikan(), m)
+          }
+          henti
+        kasus "kayu":
+        kasus "wood":
+          jika (global.db.data.users[m.sender].wood >= count * 1) {
+            coba {
+              global.db.data.users[m.sender].wood -= count * 1
+              global.db.data.users[who].wood += count * 1
+              conn.reply(m.chat, `Berhasil Mentransfer Kayu Sebesar ${count}`.rapikan(), m)
+            } tangkap (e) {
+              global.db.data.users[m.sender].wood += count * 1
+              m.reply("Gagal Menstransfer")
+              Konsol.cetak(e)
+            }
+          } lainnya {
+            conn.reply(m.chat, `Kayu Kamu Tidak Mencukupi Untuk Mentransfer Kayu Sebesar ${count}`.rapikan(), m)
+          }
+          henti
+        kasus "iron":
+          jika (global.db.data.users[m.sender].iron >= count * 1) {
+            coba {
+              global.db.data.users[m.sender].iron -= count * 1
+              global.db.data.users[who].iron += count * 1
+              conn.reply(m.chat, `Berhasil Mentransfer Iron Sebesar ${count}`.rapikan(), m)
+            } tangkap (e) {
+              global.db.data.users[m.sender].iron += count * 1
+              m.reply("Gagal Menstransfer")
+              Konsol.cetak(e)
+            }
+          } lainnya {
+            conn.reply(m.chat, `Iron Kamu Tidak Mencukupi Untuk Mentransfer Iron Sebesar ${count}`.rapikan(), m)
+          }
+          henti
+        bawaan:
+          kembalikan conn.reply(m.chat, `Contoh: *${usedPrefix}transfer money 100 @tag*
+
+*List Yang Bisa Di Transfer :*
+•》Money
+• Tabungan
+• Potion
+• Sampah
+• Diamond
+• Common
+• Uncommon
+• Mythic
+• Legendary
+• String
+🪵 Kayu
+• Batu
+• Iron`.rapikan(), m)
+      }
+    } tangkap (e) {
+      conn.reply(m.chat, `Contoh: *${usedPrefix}transfer money 100 @tag*
+
+*List Yang Bisa Di Transfer :*
+•》Money
+• Tabungan
+• Potion
+• Sampah
+• Diamond
+• Common
+• Uncommon
+• Mythic
+• Legendary
+• String
+🪵 Kayu
+• Batu
+• Iron`.rapikan(), m)
+      Konsol.cetak(e)
+    }
+  }
+}
+handler.help = ["transfer"]
+handler.tags = ["rpg"]
+handler.command = /^(transfer|tf)$/i
+handler.group = benar
+ekspor bawaan handler

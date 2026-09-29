@@ -1,0 +1,101 @@
+impor * sebagai cheerio dari "cheerio"
+misal handler = asinkron (m, { conn, args }) =>  {
+  misal cmd = args[0]?.kecil()
+  jika (bukan cmd) {
+    lempar `*Gunakan Salah Satu Command Ini*
+
+1 *.dafont search [nama_font]*
+   Untuk mencari font berdasarkan nama.
+
+2 *.dafont dl [link_download]*
+   Untuk mengunduh font dari link hasil pencarian.
+
+*Example :*
+.dafont search fancy
+.dafont dl https://dl.dafont.com/dl/?f=fancy_nancy_2`
+  }
+  pilih (cmd) {
+    kasus "search":
+      {
+        jika (bukan args[1]) {
+          lempar "Mau Cari Apa Di Dafont?"
+        }
+        tetap query = args[1]
+        coba {
+          m.reply("🔍 Searching fonts...")
+          misal result = tunggu dafont(query)
+          jika (bukan result.panjang) {
+            lempar `Font "${query}" tidak ditemukan`
+          }
+          misal teks = `*『 DAFONT SEARCH 』*`
+          result.iris(0, 10).untukSetiap((font, i) =>  {
+            teks += `
+
+*${i + 1}. ${font.name}*
+✍️ Creator : ${font.creator}
+⬇️ Download : ${font.total_down}
+🔗 ${font.link}`
+          })
+          teks += `
+
+Gunakan:
+*.dafont dl [link_download]*`
+          m.reply(teks)
+        } tangkap (e) {
+          Konsol.galat(e)
+          m.reply("❌ Error saat mencari font")
+        }
+        henti
+      }
+    kasus "dl":
+      {
+        jika (bukan args[1]) {
+          lempar "Mana Link Nya?"
+        }
+        tetap url = args[1]
+        jika (bukan url.diawali("https://dl.dafont.com/")) {
+          lempar "❌ Link tidak valid"
+        }
+        coba {
+          m.reply("⬇️ Downloading font...")
+          tetap res = tunggu fetch(url)
+          jika (bukan res.ok) {
+            lempar `Terjadi kesalahan ${res.statusText}`
+          }
+          tetap buffer = Buffer.from(tunggu res.arrayBuffer())
+          tetap name = url.pisah("=").hapusAkhir()
+          tunggu conn.sendMessage(m.chat, { document: buffer, mimetype: "application/zip", fileName: `${name}.zip` }, { quoted: m })
+        } tangkap (e) {
+          Konsol.galat(e)
+          m.reply("❌ Gagal download font")
+        }
+        henti
+      }
+    bawaan:
+      m.reply("*Subcommand Yang Tersedia :*\n.dafont search\n.dafont dl")
+  }
+}
+asinkron fungsi dafont(query) {
+  tetap res = tunggu fetch("https://www.dafont.com/search.php?q=" + encodeURIComponent(query))
+  jika (bukan res.ok) {
+    lempar baru Error(`Status ${res.status}`)
+  }
+  tetap data = tunggu res.text()
+  tetap $ = cheerio.load(data)
+  tetap result = []
+  $(".lv1left.dfbg").each((_, el) =>  {
+    tetap text = $(el).text().ganti(/\s+/g, " ").rapikan()
+    tetap name = text.pisah(" by ")[0]
+    tetap creator = text.pisah(" by ")[1] atau "-"
+    tetap total_down = $(el).parent().cari(".light").first().text().rapikan()
+    tetap link = $(el).parent().cari("a.dl").attr("href")
+    jika (link) {
+      result.tambah({ name, creator, total_down, link: "https:" + link })
+    }
+  })
+  kembalikan result
+}
+handler.help = ["dafont"]
+handler.tags = ["downloader"]
+handler.command = /^dafont$/i
+ekspor bawaan handler

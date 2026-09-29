@@ -1,0 +1,26 @@
+ekspor fungsi toTimeString(ms) {
+  tetap detik = Matematika.bawah((ms / 1000) % 60)
+  tetap menit = Matematika.bawah((ms / (60 * 1000)) % 60)
+  tetap jam = Matematika.bawah((ms / (60 * 60 * 1000)) % 24)
+  tetap hari = Matematika.bawah(ms / (24 * 60 * 60 * 1000))
+  misal keluaran = ""
+  jika (hari) keluaran = keluaran + hari + " hari "
+  jika (jam) keluaran = keluaran + jam + " jam "
+  jika (menit) keluaran = keluaran + menit + " menit "
+  jika (detik) keluaran = keluaran + detik + " detik"
+  kembalikan keluaran.rapikan()
+}
+
+ekspor fungsi isNumber(nilai) {
+  tetap bulat = uraiBulat(nilai)
+  kembalikan jenisdari bulat == "angka" dan bukan adalahNaN(bulat)
+}
+
+ekspor fungsi nullish(nilai) {
+  kembalikan bukan (nilai != kosong dan nilai != taktentu)
+}
+
+ekspor fungsi getKey(masukan) {
+  jika (masukan == kosong atau masukan == taktentu) kembalikan "null"
+  kembalikan Bita.keHeks(Kripto.sha256(Bita.dariTeks("" + masukan)))
+}

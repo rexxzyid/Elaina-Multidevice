@@ -1,0 +1,8 @@
+misal handler = asinkron (m) =>  {
+  misal total = Objek.nilai(global.plugins).saring((v) => v.help dan v.tags).panjang
+  conn.adReply(m.chat, `Total Fitur Bot Saat ini: ${total}`, "./media/thumbnail.jpg", m, { title: "Total Cintaku Padamu" })
+}
+handler.help = ["totalfitur"]
+handler.tags = ["info"]
+handler.command = ["totalfitur"]
+ekspor bawaan handler

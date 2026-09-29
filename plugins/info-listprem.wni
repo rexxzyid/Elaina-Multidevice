@@ -1,0 +1,28 @@
+misal handler = asinkron (m) =>  {
+  misal response = "• *PREMIUM SUBSCRIPTION*\n\n"
+  misal totalPremium = 0
+  untuk (misal user dalam global.db.data.users) {
+    jika (global.db.data.users[user].premium) {
+      misal number = user.pisah("@")[0]
+      misal name = global.db.data.users[user].name atau ""
+      misal days = Matematika.mutlak(Matematika.bawah((global.db.data.users[user].premiumTime - baru Tanggal()) / (24 * 60 * 60 * 1000)))
+      misal hours = Matematika.mutlak(Matematika.bawah((global.db.data.users[user].premiumTime - baru Tanggal()) / (60 * 60 * 1000))) % 24
+      misal minutes = Matematika.mutlak(Matematika.bawah((global.db.data.users[user].premiumTime - baru Tanggal()) / (60 * 1000))) % 60
+      response += `∝───────•••───────
+◦  *${number}*
+•  ${name}
+*Active period*: ${days} Hari ${hours} Jam ${minutes} Menit
+∝───────•••───────
+`
+      totalPremium++
+    }
+  }
+  response += `┌  ◦  Total Premium : *${totalPremium}*
+`
+  response += "└  ◦  Upgrade Premium: *.owner*"
+  m.reply(response, m.from, { contextInfo: { mentionedJid: Objek.kunci(global.db.data.users).saring((jid) => global.db.data.users[jid].premium) } })
+}
+handler.help = ["listpremium"]
+handler.command = /^(listprem(ium|iums)?)$/i
+handler.tags = ["info"]
+ekspor bawaan handler

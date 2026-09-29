@@ -1,0 +1,12 @@
+misal handler = asinkron (m, { text }) =>  {
+  misal user = global.db.data.users[m.sender]
+  user.afk = +baru Tanggal()
+  user.afkReason = text
+  m.reply(`
+  ${conn.getName(m.sender)} is now AFK${text ? ": " + text : ""}
+  `)
+}
+handler.help = ["afk [alasan]"]
+handler.tags = ["main"]
+handler.command = /^afk$/i
+ekspor bawaan handler

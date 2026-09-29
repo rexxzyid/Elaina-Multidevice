@@ -1,0 +1,23 @@
+misal handler = asinkron (m, { conn, isAdmin, isBotAdmin, usedPrefix, command }) =>  {
+  jika (bukan m.quoted) {
+    kembalikan m.reply(`Reply pesan yang ingin dihapus dengan caption ${usedPrefix + command}`)
+  }
+  jika (m.quoted.fromMe) {
+    tunggu m.quoted.delete()
+  } lainnya {
+    jika (bukan isBotAdmin) {
+      kembalikan global.dfail("botAdmin", m, conn)
+    }
+    jika (bukan isAdmin) {
+      kembalikan global.dfail("admin", m, conn)
+    }
+    misal bilek = m.message.extendedTextMessage.contextInfo.participant
+    misal banh = m.message.extendedTextMessage.contextInfo.stanzaId
+    tunggu conn.sendMessage(m.chat, { delete: { remoteJid: m.chat, fromMe: salah, id: banh, participant: bilek } })
+  }
+}
+handler.help = ["del"]
+handler.tags = ["tools"]
+handler.command = /^(del|delete|hapus?)$/i
+handler.limit = salah
+ekspor bawaan handler

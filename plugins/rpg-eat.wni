@@ -1,0 +1,218 @@
+misal handler = asinkron (m, { command, args }) =>  {
+  misal user = global.db.data.users[m.sender]
+  misal type = (args[0] atau "").kecil()
+  misal _type = (args[1] atau "").kecil()
+  tetap list = `
+╭──『 Makanan 』
+│• *Ayambakar*
+│• *Ayamgoreng*
+│• *Rendang*
+│• *Steak*
+│• *Babipanggang*
+│• *Gulaiayam*
+│• *Oporayam*
+│• *Ikanbakar*
+│• *Lelebakar*
+│• *Nilabakar*
+│• *Bawalbakar*
+│• *Udangbakar*
+│• *Pausbakar*
+│• *Kepitingbakar*
+╰───────────────
+`.rapikan()
+  jika (/makan|eat/i.uji(command)) {
+    tetap count = args[1] dan args[1].panjang > 0 ? Matematika.min(99999999, Matematika.maks(uraiBulat(args[1]), 1)) : bukan args[1] atau args.panjang < 3 ? 1 : Matematika.min(1, count)
+    pilih (type) {
+      kasus "ayamgoreng":
+        jika (user.stamina < 100) {
+          jika (user.ayamgoreng >= count * 1) {
+            user.ayamgoreng -= count * 1
+            user.stamina += 20 * count
+            conn.reply(m.chat, `Nyam nyam`, m)
+          } lainnya {
+            conn.reply(m.chat, ` Ayam goreng kamu kurang`, m)
+          }
+        } lainnya {
+          conn.reply(m.chat, `Stamina kamu sudah penuh`, m)
+        }
+        henti
+      kasus "ayambakar":
+        jika (user.stamina < 100) {
+          jika (user.ayambakar >= count * 1) {
+            user.ayambakar -= count * 1
+            user.stamina += 20 * count
+            conn.reply(m.chat, `Nyam nyam`, m)
+          } lainnya {
+            conn.reply(m.chat, ` Ayam bakar kamu kurang`, m)
+          }
+        } lainnya {
+          conn.reply(m.chat, `Stamina kamu sudah penuh`, m)
+        }
+        henti
+      kasus "oporayam":
+        jika (user.stamina < 100) {
+          jika (user.oporayam >= count * 1) {
+            user.oporayam -= count * 1
+            user.stamina += 20 * count
+            conn.reply(m.chat, `Nyam nyam`, m)
+          } lainnya {
+            conn.reply(m.chat, ` Opor ayam kamu kurang`, m)
+          }
+        } lainnya {
+          conn.reply(m.chat, `Stamina kamu sudah penuh`, m)
+        }
+        henti
+      kasus "rendang":
+        jika (user.stamina < 100) {
+          jika (user.rendang >= count * 1) {
+            user.rendang -= count * 1
+            user.stamina += 20 * count
+            conn.reply(m.chat, `Nyam nyam`, m)
+          } lainnya {
+            conn.reply(m.chat, ` Rendang kamu kurang`, m)
+          }
+        } lainnya {
+          conn.reply(m.chat, `Stamina kamu sudah penuh`, m)
+        }
+        henti
+      kasus "steak":
+        jika (user.stamina < 100) {
+          jika (user.steak >= count * 1) {
+            user.steak -= count * 1
+            user.stamina += 20 * count
+            conn.reply(m.chat, `Nyam nyam`, m)
+          } lainnya {
+            conn.reply(m.chat, ` Steak kamu kurang`, m)
+          }
+        } lainnya {
+          conn.reply(m.chat, `Stamina kamu sudah penuh`, m)
+        }
+        henti
+      kasus "gulaiayam":
+        jika (user.stamina < 100) {
+          jika (user.gulaiayam >= count * 1) {
+            user.gulaiayam -= count * 1
+            user.stamina += 20 * count
+            conn.reply(m.chat, `Nyam nyam`, m)
+          } lainnya {
+            conn.reply(m.chat, ` Gulai ayam kamu kurang`, m)
+          }
+        } lainnya {
+          conn.reply(m.chat, `Stamina kamu sudah penuh`, m)
+        }
+        henti
+      kasus "babipanggang":
+        jika (user.stamina < 100) {
+          jika (user.babipanggang >= count * 1) {
+            user.babipanggang -= count * 1
+            user.stamina += 20 * count
+            conn.reply(m.chat, `Nyam nyam`, m)
+          } lainnya {
+            conn.reply(m.chat, ` Babi panggang kamu kurang`, m)
+          }
+        } lainnya {
+          conn.reply(m.chat, `Stamina kamu sudah penuh`, m)
+        }
+        henti
+      kasus "ikanbakar":
+        jika (user.stamina < 100) {
+          jika (user.ikanbakar >= count * 1) {
+            user.ikanbakar -= count * 1
+            user.stamina += 20 * count
+            conn.reply(m.chat, `Nyam nyam`, m)
+          } lainnya {
+            conn.reply(m.chat, ` ikan bakar kamu kurang`, m)
+          }
+        } lainnya {
+          conn.reply(m.chat, `Stamina kamu sudah penuh`, m)
+        }
+        henti
+      kasus "lelebakar":
+        jika (user.stamina < 100) {
+          jika (user.lelebakar >= count * 1) {
+            user.lelebakar -= count * 1
+            user.stamina += 20 * count
+            conn.reply(m.chat, `Nyam nyam`, m)
+          } lainnya {
+            conn.reply(m.chat, ` lele bakar kamu kurang`, m)
+          }
+        } lainnya {
+          conn.reply(m.chat, `Stamina kamu sudah penuh`, m)
+        }
+        henti
+      kasus "nilabakar":
+        jika (user.stamina < 100) {
+          jika (user.nilabakar >= count * 1) {
+            user.nilabakar -= count * 1
+            user.stamina += 20 * count
+            conn.reply(m.chat, `Nyam nyam`, m)
+          } lainnya {
+            conn.reply(m.chat, ` nila bakar kamu kurang`, m)
+          }
+        } lainnya {
+          conn.reply(m.chat, `Stamina kamu sudah penuh`, m)
+        }
+        henti
+      kasus "bawalbakar":
+        jika (user.stamina < 100) {
+          jika (user.bawalbakar >= count * 1) {
+            user.bawalbakar -= count * 1
+            user.stamina += 20 * count
+            conn.reply(m.chat, `Nyam nyam`, m)
+          } lainnya {
+            conn.reply(m.chat, ` bawal bakar kamu kurang`, m)
+          }
+        } lainnya {
+          conn.reply(m.chat, `Stamina kamu sudah penuh`, m)
+        }
+        henti
+      kasus "udangbakar":
+        jika (user.stamina < 100) {
+          jika (user.udangbakar >= count * 1) {
+            user.udangbakar -= count * 1
+            user.stamina += 20 * count
+            conn.reply(m.chat, `Nyam nyam`, m)
+          } lainnya {
+            conn.reply(m.chat, ` udang bakar kamu kurang`, m)
+          }
+        } lainnya {
+          conn.reply(m.chat, `Stamina kamu sudah penuh`, m)
+        }
+        henti
+      kasus "pausbakar":
+        jika (user.stamina < 100) {
+          jika (user.pausbakar >= count * 1) {
+            user.pausbakar -= count * 1
+            user.stamina += 20 * count
+            conn.reply(m.chat, `Nyam nyam`, m)
+          } lainnya {
+            conn.reply(m.chat, ` paus bakar kamu kurang`, m)
+          }
+        } lainnya {
+          conn.reply(m.chat, `Stamina kamu sudah penuh`, m)
+        }
+        henti
+      kasus "kepitingbakar":
+        jika (user.stamina < 100) {
+          jika (user.kepitingbakar >= count * 1) {
+            user.kepitingbakar -= count * 1
+            user.stamina += 20 * count
+            conn.reply(m.chat, `Nyam nyam`, m)
+          } lainnya {
+            conn.reply(m.chat, ` kepiting bakar kamu kurang`, m)
+          }
+        } lainnya {
+          conn.reply(m.chat, `Stamina kamu sudah penuh`, m)
+        }
+        henti
+      bawaan:
+        conn.reply(m.chat, list, m)
+    }
+  }
+}
+handler.help = ["makan"]
+handler.tags = ["rpg"]
+handler.register = benar
+handler.group = benar
+handler.command = /^(eat|makan)$/i
+ekspor bawaan handler

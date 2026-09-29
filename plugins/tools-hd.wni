@@ -1,0 +1,40 @@
+impor axios dari "axios"
+impor FormData dari "form-data"
+misal handler = asinkron (m, { usedPrefix, command }) =>  {
+  misal quoted = m.quoted ? m.quoted : m
+  misal mime = (quoted.msg atau quoted).mimetype
+  jika (bukan /image/.uji(mime)) {
+    lempar `Kirim/Reply Foto Dengan Caption ${usedPrefix + command}`
+  }
+  misal media = tunggu quoted.download()
+  misal res
+  jika (/^hdr$/i.uji(command)) {
+    res = tunggu upscale(media, 4)
+  } lainnya {
+    res = tunggu upscale(media, 2)
+  }
+  conn.sendFile(m.chat, res?.data?.downloadUrls[0], "hd.png", "Nih Hasilnya", m)
+}
+handler.help = ["hd", "hdr"]
+handler.tags = ["tools"]
+handler.command = /^(upscale|hd|hdr)$/i
+handler.limit = benar
+ekspor bawaan handler
+asinkron fungsi upscale(buffer, rasio = 2) {
+  tetap form = baru FormData()
+  form.append("myfile", buffer, Tanggal.now() + ".jpg")
+  form.append("scaleRadio", rasio)
+  tetap upload = tunggu axios.post("https://get1.imglarger.com/api/UpscalerNew/UploadNew", form, { headers: { ...form.getHeaders(), Origin: "https://imgupscaler.com" } })
+  jika (upload.status != 200) {
+    lempar baru Error("Gagal Upload Image")
+  }
+  untuk (misal i = 0; i < 20; i++) {
+    tetap check = tunggu axios.post("https://get1.imglarger.com/api/UpscalerNew/CheckStatusNew", { code: upload.data?.data?.code, scaleRadio: rasio }, { headers: { "Content-Type": "application/json" } })
+    tetap result = check.data
+    jika (result?.data?.status == "success") {
+      kembalikan result
+    }
+    tunggu baileys.delay(5000)
+  }
+  lempar baru Error("Upscale Timeout")
+}

@@ -1,0 +1,34 @@
+impor fs dari "fs"
+impor syntaxError dari "syntax-error"
+misal handler = asinkron (m, { text, usedPrefix, command }) =>  {
+  jika (bukan text) {
+    lempar `uhm.. teksnya mana?
+
+penggunaan:
+${usedPrefix + command} <teks>
+
+contoh:
+${usedPrefix + command} plugins/file.js`
+  }
+  jika (bukan m.quoted?.text) {
+    lempar `balas pesan nya!`
+  }
+  misal code = m.quoted.text
+  misal path = `./plugins/${text}.js`
+  misal err = syntaxError(code, path, { sourceType: "module", allowAwaitOutsideFunction: benar })
+  jika (err) {
+    lempar `❌ Syntax Error
+
+Message : ${err.message}
+Line : ${err.line}
+Column : ${err.column}
+Annotated : ${err.annotated}`
+  }
+  fs.writeFileSync(path, code)
+  m.reply(`✅ tersimpan di ${path}`)
+}
+handler.help = ["sfp <text>"]
+handler.tags = ["owner"]
+handler.command = /^sfp$/i
+handler.owner = benar
+ekspor bawaan handler

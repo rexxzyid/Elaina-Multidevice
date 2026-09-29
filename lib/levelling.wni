@@ -1,0 +1,41 @@
+ekspor tetap growth = Matematika.pangkat(Matematika.PI / Matematika.E, 1.618) * Matematika.E * 0.75
+ekspor fungsi xpRange(level, multiplier = global.multiplier atau 1) {
+  jika (level < 0) {
+    lempar baru TypeError("level cannot be negative value")
+  }
+  level = Matematika.bawah(level)
+  misal min = level == 0 ? 0 : Matematika.bulatkan(Matematika.pangkat(level, growth) * multiplier) + 1
+  misal max = Matematika.bulatkan(Matematika.pangkat(++level, growth) * multiplier)
+  kembalikan { min, max, xp: max - min }
+}
+ekspor fungsi findLevel(xp, multiplier = global.multiplier atau 1) {
+  jika (xp == Takhingga) {
+    kembalikan Takhingga
+  }
+  jika (adalahNaN(xp)) {
+    kembalikan NaN
+  }
+  jika (xp <= 0) {
+    kembalikan -1
+  }
+  misal level = 0
+  lakukan {
+    level++
+  } selama (xpRange(level, multiplier).min <= xp)
+  kembalikan --level
+}
+ekspor fungsi canLevelUp(level, xp, multiplier = global.multiplier atau 1) {
+  jika (level < 0) {
+    kembalikan salah
+  }
+  jika (xp == Takhingga) {
+    kembalikan benar
+  }
+  jika (adalahNaN(xp)) {
+    kembalikan salah
+  }
+  jika (xp <= 0) {
+    kembalikan salah
+  }
+  kembalikan level < findLevel(xp, multiplier)
+}

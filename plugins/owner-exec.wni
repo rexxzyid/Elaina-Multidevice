@@ -1,0 +1,41 @@
+impor syntaxerror dari "syntax-error"
+impor { format } dari "util"
+impor { fileURLToPath } dari "url"
+impor { dirname } dari "path"
+impor { createRequire } dari "module"
+tetap __dirname = dirname(fileURLToPath(importMeta.url))
+tetap require = createRequire(__dirname)
+misal handler = asinkron (m, _2) =>  {
+  misal { conn, usedPrefix, noPrefix, groupMetadata } = _2
+  misal _return
+  misal _syntax = ""
+  misal _text = (/^=/.uji(usedPrefix) ? "return " : "") + noPrefix
+  misal old = m.exp * 1
+  coba {
+    misal i = 15
+    misal f = { exports: {} }
+    misal exec = baru (asinkron () =>  {}).constructor("print", "m", "require", "conn", "baileys", "groupMetadata", "module", "exports", "argument", _text)
+    _return = tunggu exec.call(conn, (...args) =>  {
+      jika (--i < 1) {
+        kembalikan
+      }
+      Konsol.cetak(...args)
+      kembalikan conn.reply(m.chat, format(...args), m)
+    }, m, require, conn, baileys, groupMetadata, f, f.exports, [conn, _2])
+  } tangkap (e) {
+    misal err = syntaxerror(_text, "Execution Function", { allowReturnOutsideFunction: benar, allowAwaitOutsideFunction: benar, sourceType: "module" })
+    jika (err) {
+      _syntax = "```" + err + "```\n\n"
+    }
+    _return = e
+  } akhirnya {
+    conn.reply(m.chat, _syntax + format(_return), m)
+    m.exp = old
+  }
+}
+handler.help = [">", "=>"]
+handler.tags = ["owner"]
+handler.customPrefix = /^=?> /
+handler.command = /(?:)/i
+handler.owner = benar
+ekspor bawaan handler

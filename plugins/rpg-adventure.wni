@@ -1,0 +1,88 @@
+misal handler = asinkron (m, { conn }) =>  {
+  coba {
+    tetap user = global.db.data.users[m.sender]
+    tetap cooldown = 3600000
+    tetap now = Tanggal.now()
+    tetap diff = now - user.lastadventure
+    tetap timers = clockString(cooldown - diff)
+    jika (user.health < 80) {
+      kembalikan m.reply("Minimal 80 Health Untuk Bisa Berpetualang\nKamu Bisa Menggunakan Potion Dengan Cara *.heal*\nJika Tidak Mempunyai Potion Kamu Bisa Beli Dengan Cara *.buy potion (jumlah)*")
+    }
+    jika (diff < cooldown) {
+      kembalikan m.reply(`Kamu Sudah Berpetualang Hari Ini, Istirahat Selama *${timers}*`)
+    }
+    tetap health = Matematika.bawah(Matematika.acak() * 101)
+    tetap exp = Matematika.bawah(Matematika.acak() * 10000)
+    tetap uang = Matematika.bawah(Matematika.acak() * 100000)
+    tetap trash = Matematika.bawah(Matematika.acak() * 10000)
+    tetap emerald = Matematika.bawah(Matematika.acak() * 100)
+    tetap _potion = makeInt("rand", 3)
+    tetap _sampah = makeInt("anu", 50)
+    tetap _diamond = makeInt("anu", 10)
+    tetap _common = makeInt("anu", 3)
+    tetap _uncommon = makeInt("rand", 4)
+    tetap _mythic = makeInt("rand", 5, 3)
+    tetap _legendary = makeInt("rand", 5, 3)
+    tetap potion = pickRandom(_potion)
+    tetap sampah = pickRandom(_sampah)
+    tetap diamond = pickRandom(_diamond)
+    tetap common = pickRandom(_common)
+    tetap uncommon = pickRandom(_uncommon)
+    tetap mythic = pickRandom(_mythic)
+    tetap legendary = pickRandom(_legendary)
+    tetap itemrand = [`*${mythic} Peti Mistis Langka*`, `*${legendary} Peti Legendary Langka*`]
+    tetap str = `
+Nyawa Mu Berkurang Sebesar -${health}, Karena Kamu Berpetualang Dan Melawan ${pickRandom(["Raksasa", "Beruang", "Harimau", "Macan", "Iblis"])} Tapi Kamu Mendapatkan:
+
+*Exp:* ${exp} 
+*Uang:* ${uang}
+*Berlian:* ${diamond}
+*Emerald:* ${emerald}
+*Sampah:* ${sampah}
+${potion == 0 ? "" : "*Potion:* " + potion}
+${common == 0 ? "" : "*Common crate:* " + common}
+${uncommon == 0 ? "" : "*Uncommon crate:* " + uncommon}
+
+Dan Mendapatkan ${itemrand}
+`.rapikan()
+    conn.adReply(m.chat, str, "https://c4.wallpaperflare.com/wallpaper/755/258/362/action-adventure-anime-chronicles-wallpaper-preview.jpg", m)
+    user.health -= health
+    user.exp += exp
+    user.money += uang
+    user.potion += potion
+    user.diamond += diamond
+    user.emerald += emerald
+    user.trash += trash
+    user.common += common
+    user.uncommon += uncommon
+    user.mythic += mythic
+    user.legendary += legendary
+    user.lastadventure = now
+  } tangkap (e) {
+    Konsol.galat(e)
+    m.reply("Error")
+  }
+}
+handler.help = ["petualang"]
+handler.tags = ["rpg"]
+handler.command = /^(petualang|adventure)$/i
+handler.group = benar
+ekspor bawaan handler
+fungsi makeInt(type, total, maxNumber = 3) {
+  jika (type == "anu") {
+    kembalikan Larik.from({ length: total }, (_, i) => i + 1)
+  }
+  jika (type == "rand") {
+    kembalikan Larik.from({ length: total }, () => Matematika.bawah(Matematika.acak() * maxNumber) + 1)
+  }
+}
+fungsi pickRandom(list) {
+  kembalikan list[Matematika.bawah(Matematika.acak() * list.panjang)]
+}
+fungsi clockString(ms) {
+  misal d = adalahNaN(ms) ? "--" : Matematika.bawah(ms / 86400000)
+  misal h = adalahNaN(ms) ? "--" : Matematika.bawah(ms / 3600000) % 24
+  misal m = adalahNaN(ms) ? "--" : Matematika.bawah(ms / 60000) % 60
+  misal s = adalahNaN(ms) ? "--" : Matematika.bawah(ms / 1000) % 60
+  kembalikan ["\n" + d, " *Hari*\n ", h, " *Jam*\n ", m, " *Menit*\n ", s, " *Detik* "].petakan((v) => v.toString().isiAwal(2, 0)).gabung("")
+}

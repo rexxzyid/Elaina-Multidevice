@@ -1,0 +1,797 @@
+impor path dari "path"
+impor fs dari "fs"
+impor util dari "util"
+impor { fileURLToPath } dari "url"
+impor { createHash } dari "crypto"
+impor chalk dari "chalk"
+impor PhoneNumber dari "awesome-phonenumber"
+impor { fileTypeFromBuffer } dari "file-type"
+impor sizeOf dari "image-size"
+impor { LRUCache } dari "lru-cache"
+impor store dari "./store.wni"
+impor { toAudio } dari "./converter.wni"
+tetap __dirname = path.dirname(fileURLToPath(importMeta.url))
+tetap { default: MakeWASocket, proto, delay, downloadContentFromMessage, jidDecode, areJidsSameUser, generateForwardMessageContent, generateWAMessageFromContent, generateWAMessage, getBinaryNodeChild, WAMessageStubType, extractMessageContent, prepareWAMessageMedia } = global.baileys
+ekspor fungsi makeWASocket(connectionOptions, options = {}) {
+  misal conn = MakeWASocket(connectionOptions)
+  tetap mediaCache = baru LRUCache({ maxSize: 150 * 1024 * 1024, ttl: 1000 * 60 * 10, ttlAutopurge: benar, updateAgeOnGet: benar, updateAgeOnHas: salah, allowStale: salah, sizeCalculation: (value) => (value == kosong ? 0 : Buffer.isBuffer(value) ? value.panjang : Buffer.byteLength(jenisdari value == "object" ? JSON.teks(value) atau "" : Teks(value))) })
+  conn.isLid = baru LRUCache({ ttl: 1000 * 60 * 60, ttlAutopurge: benar })
+  tetap OrigMsg = conn.sendMessage.bind(conn)
+  misal sock = Objek.defineProperties(conn, { chats: { value: { ...(options.chats atau {}) }, writable: benar }, sendMessage: { value(jid, content, options = {}) {
+    kembalikan OrigMsg(jid, { ...content, streamingSidecar: "Omw4hLediba3yg==", annotations: [{ embeddedContent: { embeddedMusic: { musicContentMediaId: 12, songId: 11, author: global.author, title: global.namebot, artistAttribution: global.repo } }, embeddedAction: benar }], mentions: content.mentions atau conn.parseMention(content?.text atau content?.caption atau "") }, { ...options, useCachedGroupMetadata: options.useCachedGroupMetadata atau benar })
+  } }, decodeJid: { value(jid) {
+    jika (bukan jid atau jenisdari jid != "string") {
+      kembalikan (bukan nullish(jid) dan jid) atau kosong
+    }
+    kembalikan jid.decodeJid()
+  } }, profilePictureUrl: { asinkron value(jid, type = "image", query = "url") {
+    coba {
+      tetap result = tunggu conn.query({ tag: "iq", attrs: { target: jid, to: "s.whatsapp.net", type: "get", xmlns: "w:profile:picture" }, content: [{ tag: "picture", attrs: { type, query } }] }, 15000)
+      tetap child = getBinaryNodeChild(result, "picture")
+      kembalikan child?.content atau child?.attrs?.url
+    } tangkap {
+      kembalikan query == "buffer" ? fs.readFileSync(path.resolve(__dirname, "../media/avatar_contact.png")) : "https://telegra.ph/file/24fa902ead26340f3df2c.png"
+    }
+  } }, getJid: { value(sender) {
+    sender = conn.decodeJid(sender)
+    jika (bukan sender?.diakhiri("@lid")) {
+      kembalikan sender
+    }
+    tetap cached = conn.isLid.get(sender)
+    jika (cached) {
+      kembalikan cached
+    }
+    untuk (tetap chat dari Objek.nilai(conn.chats)) {
+      tetap user = chat?.metadata?.participants?.cari((p) => p.lid == sender atau p.id == sender)
+      jika (user) {
+        tetap jid = user.phoneNumber atau user.jid atau user.id
+        conn.isLid.set(sender, jid)
+        kembalikan jid
+      }
+    }
+    kembalikan sender
+  } }, logger: { get() {
+    misal dates = baru Tanggal().keTeksIndonesia("en-US", { timeZone: "Asia/Jakarta" })
+    kembalikan { info(...args) {
+      Konsol.cetak(chalk.bold.bgRgb(51, 204, 51)("INFO "), `[${chalk.rgb(255, 255, 255)(dates)}]:`, chalk.cyan(util.format(...args)))
+    }, error(...args) {
+      Konsol.cetak(chalk.bold.bgRgb(247, 38, 33)("ERROR "), `[${chalk.rgb(255, 255, 255)(baru Tanggal().toUTCString())}]:`, chalk.rgb(255, 38, 0)(util.format(...args)))
+    }, warn(...args) {
+      Konsol.cetak(chalk.bold.bgRgb(255, 153, 0)("WARNING "), `[${chalk.rgb(255, 255, 255)(baru Tanggal().toUTCString())}]:`, chalk.redBright(util.format(...args)))
+    }, trace(...args) {
+      Konsol.cetak(chalk.grey("TRACE "), `[${chalk.rgb(255, 255, 255)(baru Tanggal().toUTCString())}]:`, chalk.white(util.format(...args)))
+    }, debug(...args) {
+      Konsol.cetak(chalk.bold.bgRgb(66, 167, 245)("DEBUG "), `[${chalk.rgb(255, 255, 255)(baru Tanggal().toUTCString())}]:`, chalk.white(util.format(...args)))
+    } }
+  }, enumerable: benar }, getFile: { asinkron value(PATH, saveToFile = salah) {
+    tetap mediaKey = getKey(jenisdari PATH == "string" ? PATH : Buffer.isBuffer(PATH) ? PATH : Teks(PATH))
+    tetap cached = mediaCache.get(mediaKey)
+    jika (cached) {
+      kembalikan cached
+    }
+    misal res, filename
+    tetap data = Buffer.isBuffer(PATH) ? PATH : PATH contohdari ArrayBuffer ? PATH.toBuffer() : /^data:.*?\/.*?;base64,/i.uji(PATH) ? Buffer.from(PATH.split(",")[1], "base64") : /^https?:\/\//.uji(PATH) ? (res = Buffer.from(tunggu (tunggu fetch(PATH)).arrayBuffer())) : fs.existsSync(PATH) ? ((filename = PATH) , fs.readFileSync(PATH)) : jenisdari PATH == "string" ? PATH : Buffer.alloc(0)
+    jika (bukan Buffer.isBuffer(data)) {
+      lempar baru TypeError("Result is not a buffer")
+    }
+    tetap type = (tunggu fileTypeFromBuffer(data)) atau { mime: "application/octet-stream", ext: ".bin" }
+    jika (data dan saveToFile dan bukan filename) {
+      ((filename = path.gabung(__dirname, "../tmp/" + baru Tanggal() * 1 + "." + type.ext)) , tunggu fs.promises.writeFile(filename, data))
+    }
+    tetap result = { res, filename, ...type, data, deleteFile() {
+      kembalikan filename dan fs.promises.unlink(filename)
+    } }
+    mediaCache.set(mediaKey, result)
+    kembalikan result
+  }, enumerable: benar }, sendFile: { asinkron value(jid, path, filename = "", caption = "", quoted, ptt = salah, options = {}) {
+    tetap mediaKey = getKey(path)
+    tetap cached = mediaCache.get(mediaKey)
+    jika (cached) {
+      kembalikan conn.sendMessage(jid, { forward: cached }, { quoted })
+    }
+    misal type = tunggu conn.getFile(path, benar)
+    misal { res, data: file, filename: pathFile } = type
+    jika ((res dan res.status != 200) atau file.panjang <= 65536) {
+      coba {
+        lempar { json: JSON.urai(file.toString()) }
+      } tangkap (e) {
+        jika (e.json) {
+          lempar e.json
+        }
+      }
+    }
+    tetap fileSize = fs.statSync(pathFile).size / 1024 / 1024
+    jika (fileSize >= 100) {
+      lempar baru Error("File size is too big!")
+    }
+    misal opt = {}
+    jika (quoted) {
+      opt.quoted = quoted
+    }
+    jika (bukan type) {
+      options.asDocument = benar
+    }
+    misal mtype = "", mimetype = options.mimetype atau type.mime, convert
+    jika (/webp/.uji(type.mime) atau (/image/.uji(type.mime) dan options.asSticker)) {
+      mtype = "sticker"
+    } lainnya jika (/image/.uji(type.mime) atau (/webp/.uji(type.mime) dan options.asImage)) {
+      mtype = "image"
+    } lainnya jika (/video/.uji(type.mime)) {
+      mtype = "video"
+    } lainnya jika (/audio/.uji(type.mime)) {
+      ((convert = tunggu toAudio(file, type.ext)) , (file = convert.data) , (pathFile = convert.filename) , (mtype = "audio") , (mimetype = options.mimetype atau "audio/mpeg"))
+    } lainnya {
+      mtype = "document"
+    }
+    jika (options.asDocument) {
+      mtype = "document"
+    }
+    hapus options.asSticker
+    hapus options.asLocation
+    hapus options.asVideo
+    hapus options.asDocument
+    hapus options.asImage
+    misal message = { ...options, caption, ptt, [mtype]: { url: pathFile }, mimetype, fileName: filename atau pathFile.pisah("/").hapusAkhir() }
+    misal m
+    coba {
+      m = tunggu conn.sendMessage(jid, message, { ...opt, ...options })
+    } tangkap (e) {
+      Konsol.galat(e)
+      m = kosong
+    } akhirnya {
+      jika (bukan m) {
+        m = tunggu conn.sendMessage(jid, { ...message, [mtype]: file }, { ...opt, ...options })
+      }
+      file = kosong
+    }
+    mediaCache.set(mediaKey, m)
+    kembalikan m
+  }, enumerable: benar }, sendSticker: { asinkron value(jid, path, quoted, options = {}) {
+    tetap mediaKey = getKey(path)
+    tetap cached = mediaCache.get(mediaKey)
+    jika (cached) {
+      kembalikan conn.sendMessage(jid, { forward: cached }, { quoted })
+    }
+    tetap { data, mime } = tunggu conn.getFile(path)
+    jika (data.panjang == 0) {
+      lempar baru TypeError("File tidak ditemukan")
+    }
+    tetap exif = { packName: options.packname atau global.stickpack, packPublish: options.packpublish atau global.stickauth }
+    tetap sticker = tunggu (tunggu imporDinamis("./exif.js")).writeExif({ mimetype: mime, data }, exif)
+    tetap m = tunggu conn.sendMessage(jid, { sticker }, { quoted })
+    mediaCache.set(mediaKey, m)
+    kembalikan m
+  } }, sendMedia: { asinkron value(jid, path, quoted, options = {}) {
+    misal { mime, data } = tunggu conn.getFile(path)
+    misal messageType = mime.pisah("/")[0]
+    misal pase = messageType.ganti("application", "document") atau messageType
+    kembalikan conn.sendMessage(jid, { [`${pase}`]: data, mimetype: mime, ...options }, { quoted })
+  } }, sendAlbum: { asinkron value(jid, medias = [], options = {}) {
+    jika (medias.panjang < 2) {
+      lempar baru Error("Album minimal berisi 2 media.")
+    }
+    tetap media = []
+    untuk (tetap item dari medias) {
+      tetap url = jenisdari item == "string" ? item : item.url
+      tetap caption = jenisdari item == "object" ? item.caption : ""
+      misal file
+      coba {
+        file = tunggu conn.getFile(url)
+      } tangkap {
+        lanjut
+      }
+      tetap mime = file.mime
+      tetap data = file.data
+      jika (bukan mime atau bukan data) {
+        lanjut
+      }
+      tetap type = mime.pisah("/")[0]
+      jika (type == "image") {
+        media.tambah({ image: data, caption })
+      } lainnya jika (type == "video") {
+        media.tambah({ video: data, caption })
+      } lainnya {
+        lanjut
+      }
+    }
+    kembalikan conn.sendAlbumMessage(jid, media, options)
+  } }, sendAlbumMessage: { asinkron value(jid, medias, options = {}) {
+    tetap userJid = conn.user?.id
+    jika (bukan Larik.isArray(medias) atau medias.panjang < 2) {
+      lempar baru Error("Album minimal berisi 2 media.")
+    }
+    tetap delayTime = options.delay atau 5000
+    hapus options.delay
+    tetap album = generateWAMessageFromContent(jid, { albumMessage: { expectedImageCount: medias.saring((m) => m.image).panjang, expectedVideoCount: medias.saring((m) => m.video).panjang, ...options } }, { userJid, ...options })
+    tunggu conn.relayMessage(jid, album.message, { messageId: album.key.id })
+    untuk (tetap media dari medias) {
+      tetap content = media.image ? { image: media.image, ...media } : media.video ? { video: media.video, ...media } : kosong
+      jika (bukan content) {
+        lanjut
+      }
+      tetap msg = tunggu generateWAMessage(jid, content, { userJid, upload: (readStream, opts) => conn.waUploadToServer(readStream, opts), ...options })
+      jika (msg) {
+        msg.message.messageContextInfo = { messageAssociation: { associationType: 1, parentMessageKey: album.key } }
+      }
+      tunggu conn.relayMessage(jid, msg.message, { messageId: msg.key.id })
+      tunggu delay(delayTime)
+    }
+    kembalikan album
+  } }, sendButton: { asinkron value(jid, content = {}, options = {}) {
+    misal header = {}
+    misal mime = kosong
+    jika (content.image) {
+      mime = "image"
+    } lainnya jika (content.video) {
+      mime = "video"
+    } lainnya jika (content.document) {
+      mime = "document"
+    }
+    jika (mime) {
+      tetap media = tunggu prepareWAMessageMedia({ [mime]: content[mime] }, { upload: conn.waUploadToServer })
+      header = { hasMediaAttachment: benar, [`${mime}Message`]: media[`${mime}Message`] }
+    }
+    tetap msg = generateWAMessageFromContent(jid, { interactiveMessage: { header: { title: content.title atau "", ...header }, body: { text: content.body atau content.text atau content.caption }, footer: { text: content.footer }, nativeFlowMessage: { buttons: content.buttons atau [], ...content }, ...content } }, options)
+    tunggu conn.relayMessage(jid, msg.message, { messageId: msg.key.id, additionalNodes: [{ tag: "biz", attrs: {}, content: [{ tag: "interactive", attrs: { type: "native_flow", v: "1" }, content: [{ tag: "native_flow", attrs: { v: "9", name: "mixed" } }] }] }] })
+    kembalikan msg
+  } }, sendContact: { asinkron value(jid, data, quoted, options) {
+    jika (bukan Larik.isArray(data[0]) dan jenisdari data[0] == "string") {
+      data = [data]
+    }
+    misal contacts = []
+    untuk (misal [number, name] dari data) {
+      number = number.ganti(/[^0-9]/g, "")
+      misal njid = number + "@s.whatsapp.net"
+      misal biz = (tunggu conn.getBusinessProfile(njid).catch((_) => kosong)) atau {}
+      misal vcard = `
+BEGIN:VCARD
+VERSION:3.0
+N:;${name.ganti(/\n/g, "\\n")};;;
+FN:${name.ganti(/\n/g, "\\n")}
+TEL;type=CELL;type=VOICE;waid=${number}:${PhoneNumber("+" + number).getNumber("international")}${biz.description ? `
+X-WA-BIZ-NAME:${(conn.chats[njid]?.vname atau conn.getName(njid) atau name).ganti(/\n/, "\\n")}
+X-WA-BIZ-DESCRIPTION:${biz.description.ganti(/\n/g, "\\n")}
+`.rapikan() : ""}
+END:VCARD
+        `.rapikan()
+      contacts.tambah({ vcard, displayName: name })
+    }
+    kembalikan conn.sendMessage(jid, { ...options, contacts: { ...options, displayName: (contacts.panjang >= 2 ? `${contacts.panjang} kontak` : contacts[0].displayName) atau kosong, contacts } }, { quoted, ...options })
+  }, enumerable: benar }, reply: { value(jid, text = "", quoted, options) {
+    kembalikan Buffer.isBuffer(text) ? conn.sendFile(jid, text, "file", "", quoted, salah, options) : conn.sendMessage(jid, { text, ...options }, { quoted, ...options })
+  } }, adReply: { asinkron value(jid, text, path, quoted, options = {}) {
+    tetap mediaKey = getKey(path)
+    tetap url = options.source atau global.source atau ""
+    misal cached = mediaCache.get(mediaKey)
+    jika (bukan cached) {
+      tetap { data } = tunggu conn.getFile(path)
+      tetap { imageMessage: img } = tunggu prepareWAMessageMedia({ image: data }, { upload: conn.waUploadToServer, mediaTypeOverride: "thumbnail-link" })
+      tetap { width, height } = sizeOf(data)
+      cached = { img, width: width atau 192, height: height atau 192 }
+      mediaCache.set(mediaKey, cached)
+    }
+    tetap { img, width, height } = cached
+    tetap msg = generateWAMessageFromContent(jid, { extendedTextMessage: { text: url + "\n" + text, matchedText: url, jpegThumbnail: "/AgusXzz", title: options.title atau global.namebot, description: options.description atau "", previewType: 0, thumbnailDirectPath: img.directPath, mediaKey: img.mediaKey, mediaKeyTimestamp: img.mediaKeyTimestamp, thumbnailWidth: width, thumbnailHeight: height, thumbnailSha256: img.fileSha256, thumbnailEncSha256: img.fileEncSha256 } }, { quoted })
+    tunggu conn.relayMessage(jid, msg.message, { messageId: msg.key.id })
+    kembalikan msg
+  } }, cMod: { value(jid, message, text = "", sender = conn.user.jid, options = {}) {
+    jika (options.mentions dan bukan Larik.isArray(options.mentions)) {
+      options.mentions = [options.mentions]
+    }
+    misal copy = message.toJSON()
+    hapus copy.message.messageContextInfo
+    hapus copy.message.senderKeyDistributionMessage
+    misal mtype = Objek.kunci(copy.message)[0]
+    misal msg = copy.message
+    misal content = msg[mtype]
+    jika (jenisdari content == "string") {
+      msg[mtype] = text atau content
+    } lainnya jika (content.caption) {
+      content.caption = text atau content.caption
+    } lainnya jika (content.text) {
+      content.text = text atau content.text
+    }
+    jika (jenisdari content != "string") {
+      msg[mtype] = { ...content, ...options }
+      msg[mtype].contextInfo = { ...(content.contextInfo atau {}), mentionedJid: options.mentions atau content.contextInfo?.mentionedJid atau [] }
+    }
+    jika (copy.participant) {
+      sender = copy.participant = sender atau copy.participant
+    } lainnya jika (copy.key.participant) {
+      sender = copy.key.participant = sender atau copy.key.participant
+    }
+    jika (copy.key.remoteJid.berisi("@s.whatsapp.net")) {
+      sender = sender atau copy.key.remoteJid
+    } lainnya jika (copy.key.remoteJid.berisi("@broadcast")) {
+      sender = sender atau copy.key.remoteJid
+    }
+    copy.key.remoteJid = jid
+    copy.key.fromMe = areJidsSameUser(sender, conn.user.id) atau salah
+    kembalikan proto.WebMessageInfo.create(copy)
+  }, enumerable: benar }, copyNForward: { asinkron value(jid, message, forwardingScore = benar, options = {}) {
+    misal vtype
+    jika (options.readViewOnce dan message.message.viewOnceMessage?.message) {
+      vtype = Objek.kunci(message.message.viewOnceMessage.message)[0]
+      hapus message.message.viewOnceMessage.message[vtype].viewOnce
+      message.message = proto.Message.create(JSON.urai(JSON.teks(message.message.viewOnceMessage.message)))
+      message.message[vtype].contextInfo = message.message.viewOnceMessage.contextInfo
+    }
+    misal mtype = Objek.kunci(message.message)[0]
+    misal m = generateForwardMessageContent(message, bukan bukan forwardingScore)
+    misal ctype = Objek.kunci(m)[0]
+    jika (forwardingScore dan jenisdari forwardingScore == "number" dan forwardingScore > 1) {
+      m[ctype].contextInfo.forwardingScore += forwardingScore
+    }
+    m[ctype].contextInfo = { ...(message.message[mtype].contextInfo atau {}), ...(m[ctype].contextInfo atau {}) }
+    m = generateWAMessageFromContent(jid, m, { ...options, userJid: conn.user.jid })
+    tunggu conn.relayMessage(jid, m.message, { messageId: m.key.id, additionalAttributes: { ...options } })
+    kembalikan m
+  }, enumerable: benar }, downloadM: { asinkron value(m, type, saveToFile) {
+    misal filename
+    jika (bukan m atau bukan (m.url atau m.directPath)) {
+      kembalikan Buffer.alloc(0)
+    }
+    tetap mediaKey = getKey(m.url)
+    tetap cached = mediaCache.get(mediaKey)
+    jika (cached) {
+      kembalikan cached
+    }
+    tetap stream = tunggu downloadContentFromMessage(m, type)
+    misal buffer = Buffer.from([])
+    untuk (tetap chunk dari stream) {
+      buffer = Buffer.sambat([buffer, chunk])
+    }
+    jika (saveToFile) {
+      ({ filename } = tunggu conn.getFile(buffer, benar))
+    }
+    tetap res = saveToFile dan fs.existsSync(filename) ? filename : buffer
+    mediaCache.set(mediaKey, res)
+    kembalikan res
+  }, enumerable: benar }, parseMention: { value(text) {
+    jika (bukan text) {
+      kembalikan []
+    }
+    tetap match = [...text.cocokSemua(/@([0-9]{5,16}|0)/g)].petakan((m) => m[1])
+    tetap out = []
+    untuk (tetap id dari match) {
+      jika (id.panjang < 10) {
+        lanjut
+      }
+      tetap lid = `${id}@lid`
+      tetap jid = conn.getJid(lid)
+      jika (conn.isLid.has(lid)) {
+        out.tambah(lid)
+      } lainnya jika (jid dan jid != lid dan jid.berisi(id)) {
+        out.tambah(jid)
+      } lainnya {
+        out.tambah(`${id}@s.whatsapp.net`)
+      }
+    }
+    kembalikan [...baru Himpunan(out)]
+  }, enumerable: benar }, getName: { value(jid = "", withoutContact = salah) {
+    jid = conn.getJid(jid)
+    withoutContact = conn.withoutContact atau withoutContact
+    misal v
+    jika (jid.diakhiri("@g.us")) {
+      v = conn.chats[jid] atau {}
+      jika (bukan (v.name atau v.subject)) {
+        v = (conn.chats[jid] atau {}).metadata atau {}
+      }
+      kembalikan v.name atau v.subject atau PhoneNumber("+" + jid.ganti("@s.whatsapp.net", "")).getNumber("international")
+    }
+    v = jid == "0@s.whatsapp.net" ? { jid, vname: "WhatsApp" } : areJidsSameUser(jid, conn.user.jid) ? conn.user : conn.chats[jid] atau {}
+    kembalikan (bukan withoutContact dan v.name) atau v.subject atau v.vname atau v.notify atau v.verifiedName atau PhoneNumber("+" + jid.ganti("@s.whatsapp.net", "")).getNumber("international")
+  }, enumerable: benar }, loadMessage: { value(messageID) {
+    kembalikan Objek.entri(conn.chats).saring(([_, { messages }]) => jenisdari messages == "object").cari(([_, { messages }]) => Objek.entri(messages).cari(([k, v]) => k == messageID atau v.key?.id == messageID))?.[1].messages?.[messageID]
+  }, enumerable: benar }, sendGroupV4Invite: { asinkron value(groupJid, participant, inviteCode, inviteExpiration, groupName, caption, jpegThumbnail, options = {}) {
+    tetap msg = generateWAMessageFromContent(participant, { groupInviteMessage: { inviteCode, inviteExpiration: uraiBulat(inviteExpiration) atau Tanggal.now() + 3 * 86400000, groupJid, groupName, jpegThumbnail, caption } }, { userJid: conn.user.id, ...options })
+    tunggu conn.relayMessage(participant, msg.message, { messageId: msg.key.id })
+    kembalikan msg
+  }, enumerable: benar }, insertAllGroup: { asinkron value() {
+    tetap groups = (tunggu conn.groupFetchAllParticipating().catch((_) => kosong)) atau {}
+    untuk (tetap group dalam groups) {
+      conn.chats[group] = { ...(conn.chats[group] atau {}), id: group, subject: groups[group].subject, isChats: benar, metadata: groups[group] }
+    }
+    kembalikan conn.chats
+  } }, pushMessage: { asinkron value(m) {
+    jika (bukan m) {
+      kembalikan
+    }
+    jika (bukan Larik.isArray(m)) {
+      m = [m]
+    }
+    untuk (tetap message dari m) {
+      coba {
+        jika (bukan message) {
+          lanjut
+        }
+        tetap _mtype = Objek.kunci(message.message atau {})
+        tetap mtype = (bukan ["senderKeyDistributionMessage", "messageContextInfo"].berisi(_mtype[0]) dan _mtype[0]) atau (_mtype.panjang >= 3 dan _mtype[1] != "messageContextInfo" dan _mtype[1]) atau _mtype[_mtype.panjang - 1]
+        tetap chat = conn.getJid(message.key.remoteJid atau message.message?.senderKeyDistributionMessage?.groupId atau "")
+        jika (message.message?.[mtype]?.contextInfo?.quotedMessage) {
+          misal context = message.message[mtype].contextInfo
+          misal participant = conn.getJid(context.participant)
+          tetap remoteJid = conn.getJid(context.remoteJid atau participant)
+          misal quoted = message.message[mtype].contextInfo.quotedMessage
+          jika (remoteJid dan remoteJid != "status@broadcast" dan quoted) {
+            tetap isGroup = remoteJid.diakhiri("g.us")
+            jika (isGroup dan bukan participant) {
+              participant = remoteJid
+            }
+            tetap qM = { key: { remoteJid, fromMe: areJidsSameUser(conn.user.jid, remoteJid), id: context.stanzaId, participant }, message: JSON.urai(JSON.teks(quoted)), ...(isGroup ? { participant } : {}) }
+            misal qChats = conn.chats[participant]
+            jika (bukan qChats) {
+              qChats = conn.chats[participant] = { id: participant, isChats: bukan isGroup }
+            }
+            jika (bukan qChats.messages) {
+              qChats.messages = {}
+            }
+            jika (bukan qChats.messages[context.stanzaId] dan bukan qM.key.fromMe) {
+              qChats.messages[context.stanzaId] = qM
+            }
+            misal qChatsMessages
+            jika ((qChatsMessages = Objek.entri(qChats.messages)).panjang > 40) {
+              qChats.messages = Objek.dariEntri(qChatsMessages.iris(30, qChatsMessages.panjang))
+            }
+          }
+        }
+        jika (bukan chat atau chat == "status@broadcast") {
+          lanjut
+        }
+        tetap isGroup = chat.diakhiri("@g.us")
+        misal chats = conn.chats[chat]
+        jika (bukan chats) {
+          jika (isGroup) {
+            tunggu conn.insertAllGroup().catch(Konsol.error)
+          }
+          chats = conn.chats[chat] = { id: chat, isChats: benar, ...(conn.chats[chat] atau {}) }
+        }
+        misal metadata, sender
+        jika (isGroup) {
+          jika (bukan chats.subject atau bukan chats.metadata) {
+            metadata = (tunggu conn.groupMetadata(chat).catch((_) => ({}))) atau {}
+            jika (bukan chats.subject) {
+              chats.subject = metadata.subject atau ""
+            }
+            jika (bukan chats.metadata) {
+              chats.metadata = metadata
+            }
+          }
+          sender = conn.getJid((message.key?.fromMe dan conn.user.id) atau message.participant atau message.key?.participant atau chat)
+          jika (sender != chat) {
+            misal chats = conn.chats[sender]
+            jika (bukan chats) {
+              chats = conn.chats[sender] = { id: sender }
+            }
+            jika (bukan chats.name) {
+              chats.name = message.pushName atau chats.name atau ""
+            }
+          }
+        } lainnya jika (bukan chats.name) {
+          chats.name = message.pushName atau chats.name atau ""
+        }
+        jika (["senderKeyDistributionMessage", "messageContextInfo"].berisi(mtype)) {
+          lanjut
+        }
+        chats.isChats = benar
+        jika (bukan chats.messages) {
+          chats.messages = {}
+        }
+        tetap fromMe = message.key.fromMe atau areJidsSameUser(sender atau chat, conn.user.id)
+        jika (bukan ["protocolMessage"].berisi(mtype) dan bukan fromMe dan message.messageStubType != WAMessageStubType.CIPHERTEXT dan message.message) {
+          hapus message.message.messageContextInfo
+          hapus message.message.senderKeyDistributionMessage
+          chats.messages[message.key.id] = JSON.urai(JSON.teks(message, kosong, 2))
+          misal chatsMessages
+          jika ((chatsMessages = Objek.entri(chats.messages)).panjang > 40) {
+            chats.messages = Objek.dariEntri(chatsMessages.iris(30, chatsMessages.panjang))
+          }
+        }
+      } tangkap (e) {
+        Konsol.galat(e)
+      }
+    }
+  } }, serializeM: { value(m) {
+    kembalikan smsg(conn, m)
+  } }, ...(jenisdari conn.setStatus != "function" ? { setStatus: { value(status) {
+    kembalikan conn.query({ tag: "iq", attrs: { to: S_WHATSAPP_NET, type: "set", xmlns: "status" }, content: [{ tag: "status", attrs: {}, content: Buffer.from(status, "utf-8") }] })
+  }, enumerable: benar } } : {}) })
+  jika (sock.user?.id) {
+    sock.user.jid = sock.decodeJid(sock.user.id)
+  }
+  store.bind(sock)
+  kembalikan sock
+}
+ekspor fungsi smsg(conn, m) {
+  jika (bukan m) {
+    kembalikan m
+  }
+  misal M = proto.WebMessageInfo
+  m = M.create(m)
+  m.message = parseMessage(m.message)
+  Objek.defineProperty(m, "conn", { enumerable: salah, writable: benar, value: conn })
+  misal protocolMessageKey
+  jika (m.message) {
+    jika (m.mtype == "protocolMessage" dan m.msg.key) {
+      protocolMessageKey = m.msg.key
+      jika (protocolMessageKey == "status@broadcast") {
+        protocolMessageKey.remoteJid = m.chat
+      }
+      jika (bukan protocolMessageKey.participant atau protocolMessageKey.participant == "status_me") {
+        protocolMessageKey.participant = m.sender
+      }
+      protocolMessageKey.fromMe = conn.decodeJid(protocolMessageKey.participant) == conn.decodeJid(conn.user.id)
+      jika (bukan protocolMessageKey.fromMe dan protocolMessageKey.remoteJid == conn.decodeJid(conn.user.id)) {
+        protocolMessageKey.remoteJid = m.sender
+      }
+    }
+    jika (m.quoted) {
+      jika (bukan m.quoted.mediaMessage) {
+        hapus m.quoted.download
+      }
+    }
+  }
+  jika (bukan m.mediaMessage) {
+    hapus m.download
+  }
+  coba {
+    jika (protocolMessageKey dan m.mtype == "protocolMessage") {
+      conn.ev.emit("message.delete", protocolMessageKey)
+    }
+  } tangkap (e) {
+    Konsol.galat(e)
+  }
+  kembalikan m
+}
+ekspor fungsi serialize() {
+  tetap MediaType = ["imageMessage", "videoMessage", "audioMessage", "stickerMessage", "documentMessage"]
+  tetap getDevice = (id) => (/^3A|2A.{18}$/.uji(id) ? "ios" : /^(.{21}|.{32})$/.uji(id) ? "android" : /^(3F|.{18}$)/.uji(id) ? "desktop" : "unknown")
+  kembalikan Objek.defineProperties(proto.WebMessageInfo.prototype, { conn: { value: undefined, enumerable: salah, writable: benar }, id: { get() {
+    kembalikan ini.key?.id
+  } }, isBaileys: { get() {
+    kembalikan getDevice(ini.id) == "unknown" atau salah
+  } }, chat: { get() {
+    kembalikan ini.conn?.getJid(ini.key?.remoteJidAlt?.diakhiri("@s.whatsapp.net") ? ini.key.remoteJidAlt : ini.key?.remoteJid)
+  } }, isGroup: { get() {
+    kembalikan ini.chat?.diakhiri("@g.us")
+  }, enumerable: benar }, sender: { get() {
+    kembalikan ini.conn?.getJid(ini?.key?.participantAlt atau ini?.participant atau ini?.key?.participant atau ini.chat)
+  }, enumerable: benar }, fromMe: { get() {
+    kembalikan areJidsSameUser(ini.conn?.user.jid, ini.sender) atau ini.key?.fromMe atau salah
+  } }, mtype: { get() {
+    jika (bukan ini.message) {
+      kembalikan ""
+    }
+    tetap type = Objek.kunci(ini.message)
+    kembalikan ((bukan ["senderKeyDistributionMessage", "messageContextInfo"].berisi(type[0]) dan type[0]) atau (type.panjang >= 3 dan type[1] != "messageContextInfo" dan type[1]) atau type[type.panjang - 1])
+  }, enumerable: benar }, msg: { get() {
+    jika (bukan ini.message) {
+      kembalikan kosong
+    }
+    kembalikan parseMessage(ini.message[ini.mtype])
+  } }, mediaMessage: { get() {
+    jika (bukan ini.message) {
+      kembalikan kosong
+    }
+    tetap Message = (ini.msg?.url atau ini.msg?.directPath ? { ...ini.message } : extractMessageContent(ini.message)) atau kosong
+    jika (bukan Message) {
+      kembalikan kosong
+    }
+    tetap mtype = Objek.kunci(Message)[0]
+    kembalikan MediaType.berisi(mtype) ? Message : kosong
+  }, enumerable: benar }, mediaType: { get() {
+    misal message
+    jika (bukan (message = ini.mediaMessage)) {
+      kembalikan kosong
+    }
+    kembalikan Objek.kunci(message)[0]
+  }, enumerable: benar }, quoted: { get() {
+    tetap self = ini
+    tetap msg = self.msg
+    tetap contextInfo = msg?.contextInfo
+    tetap quoted = parseMessage(contextInfo?.quotedMessage)
+    jika (bukan msg atau bukan contextInfo atau bukan quoted) {
+      kembalikan kosong
+    }
+    tetap type = Objek.kunci(quoted)[0]
+    misal q = quoted[type]
+    tetap text = jenisdari q == "string" ? q : q.text
+    kembalikan Objek.defineProperties(JSON.urai(JSON.teks(jenisdari q == "string" ? { text: q } : q)), { mtype: { get() {
+      kembalikan type
+    }, enumerable: benar }, mediaMessage: { get() {
+      tetap Message = (q.url atau q.directPath ? { ...quoted } : extractMessageContent(quoted)) atau kosong
+      jika (bukan Message) {
+        kembalikan kosong
+      }
+      tetap mtype = Objek.kunci(Message)[0]
+      kembalikan MediaType.berisi(mtype) ? Message : kosong
+    }, enumerable: benar }, mediaType: { get() {
+      misal message
+      jika (bukan (message = ini.mediaMessage)) {
+        kembalikan kosong
+      }
+      kembalikan Objek.kunci(message)[0]
+    }, enumerable: benar }, id: { get() {
+      kembalikan contextInfo.stanzaId
+    }, enumerable: benar }, chat: { get() {
+      kembalikan self.conn?.getJid(contextInfo.remoteJid atau self.chat)
+    }, enumerable: benar }, isBaileys: { get() {
+      kembalikan getDevice(ini.id) == "unknown" atau salah
+    }, enumerable: benar }, sender: { get() {
+      kembalikan self.conn?.getJid(contextInfo.participant atau ini.chat)
+    }, enumerable: benar }, fromMe: { get() {
+      kembalikan areJidsSameUser(ini.sender, self.conn?.user.jid)
+    }, enumerable: benar }, text: { get() {
+      kembalikan text atau ini.caption atau ini.contentText atau ini.selectedDisplayText atau ""
+    }, enumerable: benar }, mentionedJid: { get() {
+      misal raw = q.contextInfo?.mentionedJid atau self.getQuotedObj()?.mentionedJid atau []
+      kembalikan raw.petakan((jid) => self.conn?.getJid(jid))
+    }, enumerable: benar }, name: { get() {
+      tetap sender = ini.sender
+      kembalikan sender ? self.conn?.getName(sender) : kosong
+    }, enumerable: benar }, vM: { get() {
+      kembalikan proto.WebMessageInfo.create({ key: { fromMe: ini.fromMe, remoteJid: ini.chat, id: ini.id }, message: quoted, ...(self.isGroup ? { participant: ini.sender } : {}) })
+    } }, fakeObj: { get() {
+      kembalikan ini.vM
+    } }, download: { value(saveToFile = salah) {
+      tetap mtype = ini.mediaType
+      kembalikan self.conn?.downloadM(ini.mediaMessage[mtype], mtype.ganti(/message/i, ""), saveToFile)
+    }, enumerable: benar, configurable: benar }, reply: { value(text, chatId, options) {
+      kembalikan self.conn?.reply(chatId ? chatId : ini.chat, text, ini.vM, options)
+    }, enumerable: benar }, copy: { value() {
+      tetap M = proto.WebMessageInfo
+      kembalikan smsg(self.conn, M.create(M.toObject(ini.vM)))
+    }, enumerable: benar }, forward: { value(jid, force = salah, options) {
+      kembalikan self.conn?.sendMessage(jid, { forward: ini.vM, force, ...options }, { ...options })
+    }, enumerable: benar }, copyNForward: { value(jid, forceForward = salah, options) {
+      kembalikan self.conn?.copyNForward(jid, ini.vM, forceForward, options)
+    }, enumerable: benar }, cMod: { value(jid, text = "", sender = ini.sender, options = {}) {
+      kembalikan self.conn?.cMod(jid, ini.vM, text, sender, options)
+    }, enumerable: benar }, delete: { value() {
+      kembalikan self.conn?.sendMessage(ini.chat, { delete: ini.vM.key })
+    }, enumerable: benar } })
+  }, enumerable: benar }, _text: { value: kosong, writable: benar }, text: { get() {
+    tetap msg = ini.msg
+    tetap text = (jenisdari msg == "string" ? msg : msg?.text) atau msg?.caption atau msg?.contentText atau msg?.selectedDisplayText atau msg?.hydratedTemplate?.hydratedContentText atau ""
+    jika (jenisdari ini._text == "string") {
+      kembalikan ini._text
+    }
+    kembalikan text
+  }, set(str) {
+    ini._text = str
+  }, enumerable: benar }, mentionedJid: { get() {
+    misal raw = (ini.msg?.contextInfo?.mentionedJid?.panjang dan ini.msg.contextInfo.mentionedJid) atau []
+    kembalikan raw.petakan((jid) => ini.conn?.getJid(jid))
+  }, enumerable: benar }, name: { get() {
+    kembalikan (bukan nullish(ini.pushName) dan ini.pushName) atau ini.conn?.getName(ini.sender)
+  }, enumerable: benar }, download: { value(saveToFile = salah) {
+    tetap mtype = ini.mediaType
+    kembalikan ini.conn?.downloadM(ini.mediaMessage[mtype], mtype.ganti(/message/i, ""), saveToFile)
+  }, enumerable: benar, configurable: benar }, reply: { value(text, chatId, options) {
+    kembalikan ini.conn?.reply(chatId ? chatId : ini.chat, text, ini, options)
+  } }, edit: { value(text, key) {
+    kembalikan ini.conn.sendMessage(ini.chat, { text, edit: key })
+  } }, react: { value(emoji) {
+    kembalikan ini.conn.sendMessage(ini.chat, { react: { text: emoji, key: ini.key } })
+  } }, copy: { value() {
+    tetap M = proto.WebMessageInfo
+    kembalikan smsg(ini.conn, M.create(M.toObject(ini)))
+  }, enumerable: benar }, forward: { value(jid, force = salah, options = {}) {
+    kembalikan ini.conn?.sendMessage(jid, { forward: ini, force, ...options }, { ...options })
+  }, enumerable: benar }, copyNForward: { value(jid, forceForward = salah, options = {}) {
+    kembalikan ini.conn?.copyNForward(jid, ini, forceForward, options)
+  }, enumerable: benar }, cMod: { value(jid, text = "", sender = ini.sender, options = {}) {
+    kembalikan ini.conn?.cMod(jid, ini, text, sender, options)
+  }, enumerable: benar }, getQuotedObj: { value() {
+    jika (bukan ini.quoted.id) {
+      kembalikan kosong
+    }
+    tetap q = proto.WebMessageInfo.create(ini.conn?.loadMessage(ini.quoted.id) atau ini.quoted.vM)
+    kembalikan smsg(ini.conn, q)
+  }, enumerable: benar }, getQuotedMessage: { get() {
+    kembalikan ini.getQuotedObj
+  } }, delete: { value() {
+    kembalikan ini.conn?.sendMessage(ini.chat, { delete: ini.key })
+  }, enumerable: benar } })
+}
+ekspor fungsi logic(check, inp, out) {
+  jika (inp.panjang != out.panjang) {
+    lempar baru Error("Input and Output must have same length")
+  }
+  untuk (misal i dalam inp) {
+    jika (util.isDeepStrictEqual(check, inp[i])) {
+      kembalikan out[i]
+    }
+  }
+  kembalikan kosong
+}
+fungsi parseMessage(content) {
+  content = extractMessageContent(content)
+  jika (content dan content.viewOnceMessageV2Extension) {
+    content = content.viewOnceMessageV2Extension.message
+  }
+  jika (content dan content.protocolMessage dan content.protocolMessage.type == 14) {
+    misal type = getContentType(content.protocolMessage)
+    content = content.protocolMessage[type]
+  }
+  jika (content dan content.message) {
+    misal type = getContentType(content.message)
+    content = content.message[type]
+  }
+  kembalikan content
+}
+tetap getContentType = (content) =>  {
+  jika (content) {
+    tetap keys = Objek.kunci(content)
+    tetap key = keys.cari((k) => (k == "conversation" atau k.diakhiri("Message") atau k.berisi("V2") atau k.berisi("V3")) dan k != "senderKeyDistributionMessage")
+    kembalikan key
+  }
+}
+ekspor fungsi protoType() {
+  Buffer.prototype.toArrayBuffer = fungsi toArrayBufferV2() {
+    tetap ab = baru ArrayBuffer(ini.panjang)
+    tetap view = baru Uint8Array(ab)
+    untuk (misal i = 0; i < ini.panjang; ++i) {
+      view[i] = ini[i]
+    }
+    kembalikan ab
+  }
+  Buffer.prototype.toArrayBufferV2 = fungsi toArrayBuffer() {
+    kembalikan ini.buffer.iris(ini.byteOffset, ini.byteOffset + ini.byteLength)
+  }
+  ArrayBuffer.prototype.toBuffer = fungsi toBuffer() {
+    kembalikan Buffer.from(baru Uint8Array(ini))
+  }
+  Uint8Array.prototype.getFileType = ArrayBuffer.prototype.getFileType = Buffer.prototype.getFileType = asinkron fungsi getFileType() {
+    kembalikan tunggu fileTypeFromBuffer(ini)
+  }
+  Teks.prototype.isNumber = Angka.prototype.isNumber = isNumber
+  Teks.prototype.capitalize = fungsi capitalize() {
+    kembalikan ini.karakterDi(0).besar() + ini.iris(1, ini.panjang)
+  }
+  Teks.prototype.capitalizeV2 = fungsi capitalizeV2() {
+    tetap str = ini.pisah(" ")
+    kembalikan str.petakan((v) => v.capitalize()).gabung(" ")
+  }
+  Teks.prototype.decodeJid = fungsi decodeJid() {
+    jika (/:\d+@/gi.uji(ini)) {
+      tetap decode = jidDecode(ini) atau {}
+      kembalikan ((decode.user dan decode.server dan decode.user + "@" + decode.server) atau ini).rapikan()
+    } lainnya {
+      kembalikan ini.rapikan()
+    }
+  }
+  Angka.prototype.toTimeString = fungsi toTimeString() {
+    tetap seconds = Matematika.bawah((ini / 1000) % 60)
+    tetap minutes = Matematika.bawah((ini / (60 * 1000)) % 60)
+    tetap hours = Matematika.bawah((ini / (60 * 60 * 1000)) % 24)
+    tetap days = Matematika.bawah(ini / (24 * 60 * 60 * 1000))
+    kembalikan ((days ? `${days} hari ` : "") + (hours ? `${hours} jam ` : "") + (minutes ? `${minutes} menit ` : "") + (seconds ? `${seconds} detik` : "")).rapikan()
+  }
+  Angka.prototype.getRandom = Teks.prototype.getRandom = Larik.prototype.getRandom = getRandom
+}
+fungsi isNumber() {
+  tetap int = uraiBulat(ini)
+  kembalikan jenisdari int == "number" dan bukan adalahNaN(int)
+}
+fungsi getRandom() {
+  jika (Larik.isArray(ini) atau ini contohdari Teks) {
+    kembalikan ini[Matematika.bawah(Matematika.acak() * ini.panjang)]
+  }
+  kembalikan Matematika.bawah(Matematika.acak() * ini)
+}
+fungsi getKey(input) {
+  jika (input == kosong) {
+    kembalikan "null"
+  }
+  tetap hash = createHash("sha256")
+  jika (Buffer.isBuffer(input)) {
+    hash.update(input)
+  } lainnya {
+    hash.update(Teks(input))
+  }
+  kembalikan hash.digest("hex")
+}
+fungsi nullish(args) {
+  kembalikan bukan (args != kosong dan args != undefined)
+}

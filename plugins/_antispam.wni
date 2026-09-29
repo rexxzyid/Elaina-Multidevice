@@ -1,0 +1,30 @@
+ekspor asinkron fungsi before(m, { isAdmin, isOwner, isBotAdmin }) {
+  tetap user = global.db.data.users[m.sender]
+  tetap chat = global.db.data.chats[m.chat]
+  jika (bukan m.isBaileys atau m.mtype == "protocolMessage" atau m.mtype == "pollUpdateMessage" atau m.mtype == "reactionMessage") {
+    kembalikan
+  }
+  jika (bukan m.msg atau bukan m.message atau m.key.remoteJid != m.chat atau user.banned atau chat.isBanned) {
+    kembalikan
+  }
+  ini.spam = ini.spam atau {}
+  ini.spam[m.sender] = ini.spam[m.sender] atau { count: 0, lastspam: 0 }
+  tetap now = m.messageTimestamp?.low atau m.messageTimestamp
+  tetap timeDifference = now - ini.spam[m.sender].lastspam
+  jika (timeDifference < 10) {
+    ini.spam[m.sender].count++
+    jika (ini.spam[m.sender].count >= 5 dan bukan isOwner dan bukan isAdmin dan bukan isBotAdmin) {
+      user.banned = benar
+      ini.spam[m.sender].lastspam = now
+      aturWaktu(() =>  {
+        user.banned = salah
+        ini.spam[m.sender].count = 0
+        conn.sendMessage(m.chat, { react: { text: "✅", key: m.key } })
+      }, 10000)
+      kembalikan m.reply("⚠️ Kamu telah terbanned tunggu setelah 10 detik..")
+    }
+  } lainnya {
+    ini.spam[m.sender].count = 0
+  }
+  ini.spam[m.sender].lastspam = now
+}

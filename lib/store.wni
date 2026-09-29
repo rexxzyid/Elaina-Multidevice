@@ -1,0 +1,163 @@
+fungsi bind(conn) {
+  jika (bukan conn.chats) {
+    conn.chats = {}
+  }
+  fungsi updateNameToDb(contacts) {
+    jika (bukan contacts) {
+      kembalikan
+    }
+    coba {
+      contacts = contacts.contacts atau contacts
+      untuk (tetap contact dari contacts) {
+        tetap id = conn.decodeJid(contact.id)
+        jika (bukan id atau id == "status@broadcast") {
+          lanjut
+        }
+        misal chats = conn.chats[id]
+        jika (bukan chats) {
+          chats = conn.chats[id] = { ...contact, id }
+        }
+        conn.chats[id] = { ...chats, ...{ ...contact, id, ...(id.diakhiri("@g.us") ? { subject: contact.subject atau contact.name atau chats.subject atau "" } : { name: contact.notify atau contact.name atau chats.name atau chats.notify atau "" }) } }
+      }
+    } tangkap (e) {
+      Konsol.galat(e)
+    }
+  }
+  conn.ev.on("contacts.upsert", updateNameToDb)
+  conn.ev.on("groups.update", updateNameToDb)
+  conn.ev.on("contacts.set", updateNameToDb)
+  conn.ev.on("chats.set", asinkron ({ chats }) =>  {
+    coba {
+      untuk (misal { id, name, readOnly } dari chats) {
+        id = conn.decodeJid(id)
+        jika (bukan id atau id == "status@broadcast") {
+          lanjut
+        }
+        tetap isGroup = id.diakhiri("@g.us")
+        misal chats = conn.chats[id]
+        jika (bukan chats) {
+          chats = conn.chats[id] = { id }
+        }
+        chats.isChats = bukan readOnly
+        jika (name) {
+          chats[isGroup ? "subject" : "name"] = name
+        }
+        jika (isGroup) {
+          tetap metadata = tunggu conn.groupMetadata(id).catch(() => kosong)
+          jika (name atau metadata?.subject) {
+            chats.subject = name atau metadata.subject
+          }
+          jika (bukan metadata) {
+            lanjut
+          }
+          chats.metadata = metadata
+        }
+      }
+    } tangkap (e) {
+      Konsol.galat(e)
+    }
+  })
+  conn.ev.on("group-participants.update", asinkron ({ id, participants, action }) =>  {
+    jika (bukan id) {
+      kembalikan
+    }
+    id = conn.decodeJid(id)
+    jika (id == "status@broadcast") {
+      kembalikan
+    }
+    jika (bukan (id dalam conn.chats)) {
+      conn.chats[id] = { id }
+    }
+    misal chat = conn.chats[id]
+    chat.isChats = benar
+    misal metadata = chat.metadata
+    jika (bukan metadata) {
+      coba {
+        metadata = tunggu conn.groupMetadata(id)
+        chat.metadata = metadata
+        chat.subject = metadata.subject
+      } tangkap (e) {
+        Konsol.galat("Gagal ambil metadata grup:", e)
+      }
+    }
+    pilih (action) {
+      kasus "add":
+      kasus "revoked_membership_requests":
+        untuk (tetap p dari participants) {
+          jika (bukan metadata.participants.cari((x) => x.id == p.id)) {
+            metadata.participants.tambah(p)
+          }
+        }
+        henti
+      kasus "promote":
+      kasus "demote":
+        untuk (tetap p dari participants) {
+          tetap target = metadata.participants.cari((x) => x.id == p.id)
+          jika (target) {
+            target.admin = action == "promote" ? "admin" : kosong
+          }
+        }
+        henti
+      kasus "remove":
+        metadata.participants = metadata.participants.saring((a) => bukan participants.cari((b) => b.id == a.id))
+        henti
+    }
+  })
+  conn.ev.on("groups.update", (updates) =>  {
+    untuk (tetap update dari updates) {
+      tetap id = conn.decodeJid(update.id)
+      jika (bukan id atau id == "status@broadcast") {
+        lanjut
+      }
+      tetap isGroup = id.diakhiri("@g.us")
+      jika (bukan isGroup) {
+        lanjut
+      }
+      misal chat = conn.chats[id]
+      jika (bukan chat) {
+        chat = conn.chats[id] = { id }
+      }
+      chat.isChats = benar
+      chat.metadata = { ...(chat.metadata atau {}), ...update }
+      jika (update.subject) {
+        chat.subject = update.subject
+      }
+    }
+  })
+  conn.ev.on("chats.upsert", (chatsUpsert) =>  {
+    coba {
+      tetap { id } = chatsUpsert
+      jika (bukan id atau id == "status@broadcast") {
+        kembalikan
+      }
+      conn.chats[id] = { ...(conn.chats[id] atau {}), ...chatsUpsert, isChats: benar }
+      tetap isGroup = id.diakhiri("@g.us")
+      jika (isGroup) {
+        conn.insertAllGroup().catch(() => kosong)
+      }
+    } tangkap (e) {
+      Konsol.galat(e)
+    }
+  })
+  conn.ev.on("presence.update", asinkron ({ id, presences }) =>  {
+    coba {
+      tetap sender = Objek.kunci(presences)[0] atau id
+      tetap _sender = conn.decodeJid(sender)
+      tetap presence = presences[sender]["lastKnownPresence"] atau "composing"
+      misal chats = conn.chats[_sender]
+      jika (bukan chats) {
+        chats = conn.chats[_sender] = { id: sender }
+      }
+      chats.presences = presence
+      jika (id.diakhiri("@g.us")) {
+        misal chats = conn.chats[id]
+        jika (bukan chats) {
+          chats = conn.chats[id] = { id }
+        }
+      }
+    } tangkap (e) {
+      Konsol.galat(e)
+    }
+  })
+}
+ekspor bawaan { bind }

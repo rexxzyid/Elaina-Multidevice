@@ -1,0 +1,10 @@
+misal handler = asinkron (m) =>  {
+  global.db.data.chats[m.chat].isBanned = benar
+  m.reply("Done!")
+}
+handler.help = ["banchat"]
+handler.tags = ["owner"]
+handler.command = /^(banchat|bnc)$/i
+handler.owner = benar
+handler.group = benar
+ekspor bawaan handler

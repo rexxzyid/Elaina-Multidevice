@@ -1,0 +1,51 @@
+misal handler = asinkron (m) =>  {
+  misal stats = Objek.entri(db.data.stats).petakan(([key, val]) =>  {
+    misal name = Larik.isArray(plugins[key]?.help) ? plugins[key]?.help.gabung(" , ") : plugins[key]?.help atau key
+    jika (/exec/.uji(name)) {
+      kembalikan
+    }
+    kembalikan { name, ...val }
+  }).saring(Boolean)
+  stats = stats.urutkan((a, b) => b.total - a.total)
+  misal handlers = stats.iris(0, 50).petakan(({ name, total, last, success, lastSuccess }, i) =>  {
+    kembalikan `*${i + 1}.* *${name}*
+ - *Hits* : ${total}
+ - *Success* : ${success}
+ - *Last Used* : ${getTime(last)}
+ - *Last Success* : ${formatTime(lastSuccess)}`
+  }).gabung("\n\n")
+  m.reply(handlers)
+}
+handler.help = ["dashboard"]
+handler.command = ["dashboard", "dash"]
+handler.tags = ["info"]
+ekspor bawaan handler
+fungsi formatTime(time) {
+  tetap date = baru Tanggal(time)
+  tetap month = getMonthName(date.getMonth())
+  tetap day = date.getDate()
+  tetap year = date.getFullYear()
+  kembalikan `${month} ${day}, ${year}`
+}
+fungsi getMonthName(month) {
+  tetap months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
+  kembalikan months[month]
+}
+fungsi getTime(ms) {
+  misal now = parseMs(+baru Tanggal() - ms)
+  jika (now.days) {
+    kembalikan `${now.days} days ago`
+  } lainnya jika (now.hours) {
+    kembalikan `${now.hours} hours ago`
+  } lainnya jika (now.minutes) {
+    kembalikan `${now.minutes} minutes ago`
+  } lainnya {
+    kembalikan `a few seconds ago`
+  }
+}
+fungsi parseMs(ms) {
+  jika (jenisdari ms != "number") {
+    lempar "Parameters must be filled with numbers"
+  }
+  kembalikan { days: Matematika.potong(ms / 86400000), hours: Matematika.potong(ms / 3600000) % 24, minutes: Matematika.potong(ms / 60000) % 60, seconds: Matematika.potong(ms / 1000) % 60, milliseconds: Matematika.potong(ms) % 1000, microseconds: Matematika.potong(ms * 1000) % 1000, nanoseconds: Matematika.potong(ms * 1000000) % 1000 }
+}

@@ -1,0 +1,73 @@
+misal handler = asinkron (m, { text }) =>  {
+  tetap nominal = uraiBulat(text)
+  jika (bukan nominal) {
+    lempar "Jumlahnya berapa?"
+  }
+  jika (nominal < 1000) {
+    lempar "Minimal 1.000 ya."
+  }
+  jika (nominal > 1000000) {
+    lempar "Emg bneran?"
+  }
+  jika (bukan global.pakasir atau bukan pakasir.slug atau bukan pakasir.apikey) {
+    lempar "`pakasir.slug` dan `pakasir.apikey` belum di isi."
+  }
+  tetap cqris = tunggu createQris(pakasir.slug, pakasir.apikey, nominal)
+  tetap expiredAt = baru Tanggal(cqris.expired_at)
+  expiredAt.setHours(expiredAt.getHours() - 1)
+  expiredAt.setMinutes(expiredAt.getMinutes() + (global.pakasir.expired atau 1))
+  tetap expiredTime = expiredAt.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit", hour12: salah, timeZone: "Asia/Jakarta" })
+  tetap sQris = tunggu conn.sendMessage(m.chat, { image: { url: `https://quickchart.io/qr?text=${encodeURIComponent(cqris.payment_number)}` }, caption: `💳 *QRIS DONASI ${global.namebot atau "BOT"}*
+
+` + `🕓 *Expired:* ${expiredTime} WIB
+` + `💸 *Biaya Admin:* Rp${cqris.fee.keTeksIndonesia("id-ID")}
+` + `💰 *Total:* Rp${cqris.total_payment.keTeksIndonesia("id-ID")}
+` + `📦 *Order ID:* #${cqris.order_id}` }, { quoted: m })
+  misal status = ""
+  selama (status != "completed") {
+    jika (baru Tanggal() >= expiredAt) {
+      tunggu conn.sendMessage(m.chat, { delete: sQris.key })
+      kembalikan m.reply("⚠️ QRIS sudah *expired*, silakan buat ulang.")
+    }
+    tetap res = tunggu checkStatus(pakasir.slug, pakasir.apikey, cqris.order_id, nominal)
+    jika (res dan res.status == "completed") {
+      status = "completed"
+      tunggu conn.sendMessage(m.chat, { delete: sQris.key })
+      m.reply("✅ Pembayaran berhasil!\nTerima kasih sudah donasi 🙏")
+      henti
+    }
+    tunggu baileys.delay(10000)
+  }
+}
+handler.help = ["donate"]
+handler.tags = ["main"]
+handler.command = /^(donate|donasi|traktir)$/i
+ekspor bawaan handler
+asinkron fungsi createQris(project, apikey, amount) {
+  coba {
+    tetap orderId = (global.namebot atau "BOT").ganti(/\s/g, "_") + "-" + Matematika.acak().toString(36).substring(2, 10).besar()
+    tetap res = tunggu fetch("https://app.pakasir.com/api/transactioncreate/qris", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.teks({ project, order_id: orderId, amount, api_key: apikey }) })
+    jika (bukan res.ok) {
+      lempar baru Error(`HTTP ${res.status}`)
+    }
+    tetap data = tunggu res.json()
+    jika (bukan data?.payment) {
+      lempar baru Error("Gagal membuat QRIS.")
+    }
+    kembalikan data.payment
+  } tangkap (e) {
+    lempar baru Error("Gagal membuat QRIS: " + e.message)
+  }
+}
+asinkron fungsi checkStatus(project, apikey, orderId, amount) {
+  coba {
+    tetap res = tunggu fetch(`https://app.pakasir.com/api/transactiondetail?project=${project}&amount=${amount}&order_id=${orderId}&api_key=${apikey}`)
+    jika (bukan res.ok) {
+      lempar baru Error(`HTTP ${res.status}`)
+    }
+    tetap data = tunggu res.json()
+    kembalikan data?.transaction
+  } tangkap (e) {
+    lempar baru Error("Gagal mengecek status QRIS: " + e.message)
+  }
+}

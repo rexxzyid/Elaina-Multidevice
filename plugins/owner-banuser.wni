@@ -1,0 +1,21 @@
+misal handler = asinkron (m, { text }) =>  {
+  jika (bukan text) {
+    lempar "Who wants to be banned?"
+  }
+  misal who
+  jika (m.isGroup) {
+    who = m.mentionedJid[0]
+  } lainnya {
+    who = m.chat
+  }
+  jika (bukan who) {
+    lempar "Tag??"
+  }
+  global.db.data.users[who].banned = benar
+  m.reply("Success!")
+}
+handler.help = ["ban"]
+handler.tags = ["owner"]
+handler.command = /^ban(user)?$/i
+handler.owner = benar
+ekspor bawaan handler

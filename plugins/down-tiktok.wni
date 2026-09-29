@@ -1,0 +1,88 @@
+misal handler = asinkron (m, { text, usedPrefix, command }) =>  {
+  coba {
+    tetap input = m.quoted ? m.quoted.text : text
+    tetap regex = /(https:\/\/(vt|vm)\.tiktok\.com\/[^\s]+|https:\/\/www\.tiktok\.com\/@[\w.-]+\/video\/\d+)/
+    tetap parseUrl = input.cocok(regex)?.[0]
+    jika (parseUrl) {
+      m.react("🔁")
+      misal res = tunggu (tunggu fetch(`https://www.tikwm.com/api/?url=${parseUrl}&hd=1`)).json()
+      jika (bukan res atau bukan res.data) {
+        "Gagal mengambil data dari TikTok."
+      }
+      misal data = res.data
+      tunggu m.reply(`# *TIKTOK DOWNLOADER*
+
+> *Judul*: ${data.title}
+> *Region*: ${data.region}
+> *Durasi*: ${formatDuration(data.duration)}
+> *Views*: ${formatNumber(data.play_count)}
+> *Komentar*: ${formatNumber(data.comment_count)}
+> *Share*: ${formatNumber(data.share_count)}
+> *Uploader*: ${data.author.nickname atau data.author.unique_id}
+
+Mengirim.....`)
+      jika (data.images dan data.images.panjang > 0) {
+        jika (data.images.panjang < 2) {
+          untuk (misal img dari data.images) {
+            tunggu conn.sendFile(m.chat, img, "", "", m)
+          }
+        } lainnya {
+          misal media = data.images.petakan((img) => ({ image: { url: img } }))
+          tunggu conn.sendAlbumMessage(m.chat, media, { quoted: m })
+        }
+      } lainnya {
+        tunggu conn.sendFile(m.chat, data.play, "", "", m)
+      }
+      jika (data.music_info.play) {
+        tunggu conn.sendMessage(m.chat, { audio: { url: data.music_info.play }, mimetype: "audio/mpeg", fileName: `${data.title}.mp3` }, { quoted: m })
+      } lainnya {
+        m.reply("Musik tidak ditemukan, hanya akan mengirimkan media itu saja.")
+      }
+    } lainnya jika (input) {
+      misal search = tunggu (tunggu fetch(`https://www.tikwm.com/api/feed/search?keywords=${input}&count=1&cursor=0&web=1&hd=1`)).json()
+      misal video = search?.data?.videos[0]
+      jika (bukan video) {
+        lempar `Video tidak ditemukan untuk pencarian "${input}".`
+      }
+      misal caption = `# *TIKTOK PLAYER*
+
+> *Judul:* ${video.title}
+> *Region:* ${video.region}
+> *Durasi:* ${formatDuration(video.duration)}
+> *Views:* ${formatNumber(video.play_count)}
+> *Komentar:* ${formatNumber(video.comment_count)}
+> *Share:* ${formatNumber(video.share_count)}
+> *Uploader:* ${video.author.nickname atau video.author.unique_id}
+`.rapikan()
+      conn.sendFile(m.chat, "https://www.tikwm.com" + video.play, "", caption, m)
+    } lainnya {
+      misal cmd = usedPrefix + command
+      m.reply(`*TIKTOK DOWNLOADER*
+> _*• Search:*_ \`${cmd} [query]\`
+> _*• Download:*_ \`${cmd} [link]\`
+
+*C O N T O H:*
+> *• ${cmd}* cosplayer
+> *• ${cmd}* \`https://vt.tiktok.com/xxxxx\``)
+    }
+  } tangkap (err) {
+    Konsol.galat(err)
+    kembalikan m.reply("Terjadi kesalahan saat memproses permintaan")
+  }
+}
+handler.help = ["tiktok"]
+handler.tags = ["downloader"]
+handler.command = /^(ttdl|tiktok|tt|tiktokdl)$/i
+handler.limit = benar
+ekspor bawaan handler
+fungsi formatNumber(number) {
+  kembalikan number.keTeksIndonesia()
+}
+fungsi formatDuration(seconds) {
+  jika (bukan seconds) {
+    kembalikan "00:00"
+  }
+  tetap m = Matematika.bawah(seconds / 60).toString().isiAwal(2, "0")
+  tetap s = Matematika.bawah(seconds % 60).toString().isiAwal(2, "0")
+  kembalikan `${m}:${s}`
+}

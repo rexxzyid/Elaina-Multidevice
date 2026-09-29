@@ -1,0 +1,107 @@
+impor * sebagai cheerio dari "cheerio"
+misal handler = asinkron (m, { conn, text }) =>  {
+  jika (bukan text) {
+    lempar "Input Query / Sfile Url!"
+  }
+  jika (/https:\/\/sfile\.co\//i.uji(text)) {
+    misal res = tunggu sfile.download(text, benar)
+    jika (bukan res) {
+      lempar "Tidak Dapat Mengunduh File"
+    }
+    tunggu m.reply(Objek.entri(res.metadata).petakan(([k, v]) => `*• ${k.capitalize()}:* ${v}`).gabung("\n").gantiSemua("_", " ") + "\n\n_Sending file..._")
+    tunggu conn.sendMessage(m.chat, { document: res.download, fileName: res.metadata.filename, mimetype: res.metadata.mimetype }, { quoted: m })
+  } lainnya {
+    misal [query, page] = text.pisah("|")
+    misal res = tunggu sfile.search(query, page)
+    jika (bukan res.panjang) {
+      lempar `Query "${query}" not found`
+    }
+    m.reply(res.petakan((v) => `*Title:* ${v.title}
+*Size:* ${v.size}
+*Link:* ${v.link}
+*Upload at:* ${v.upload_at}`).gabung("\n\n").rapikan())
+  }
+}
+handler.help = ["sfile"]
+handler.tags = ["downloader"]
+handler.command = /^sfile$/i
+handler.limit = benar
+ekspor bawaan handler
+tetap sfile = { createHeaders: (referer) => ({ "User-Agent": "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36", "sec-ch-ua": "\"Not/A)Brand\";v=\"8\", \"Chromium\";v=\"137\", \"Google Chrome\";v=\"137\"", dnt: "1", "sec-ch-ua-mobile": "?1", "sec-ch-ua-platform": "\"Android\"", "sec-fetch-site": "same-origin", "sec-fetch-mode": "cors", "sec-fetch-dest": "empty", Referer: referer, Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8", "Accept-Language": "en-US,en;q=0.9" }), extractCookies: (headers) =>  {
+  tetap raw = headers.get("set-cookie")
+  jika (bukan raw) {
+    kembalikan ""
+  }
+  kembalikan raw.pisah(",").petakan((c) => c.pisah(";")[0]).gabung("; ")
+}, extractMetadata: ($) =>  {
+  tetap m = {}
+  m.filename = $(".overflow-hidden img").attr("alt")?.rapikan()
+  m.mimetype = $(".divide-y span").first().text().rapikan()
+  m.upload_date = $(".divide-y .font-semibold").eq(2).text().rapikan()
+  m.download_count = $(".divide-y .font-semibold").eq(1).text().rapikan()
+  m.author_name = $(".divide-y a").first().text().rapikan()
+  kembalikan m
+}, makeRequest: asinkron (u, o = {}) =>  {
+  tetap res = tunggu fetch(u, o)
+  kembalikan res
+}, search: asinkron (query, page = 1) =>  {
+  tetap res = tunggu fetch(`https://sfile.co/search.php?q=${query}&page=${page}`)
+  tetap $ = cheerio.load(tunggu res.text())
+  tetap result = []
+  $(".group.px-2").each((_, el) =>  {
+    tetap title = $(el).cari(".min-w-0 a").text().rapikan()
+    tetap link = $(el).cari("a").attr("href")
+    tetap elm = $(el).cari(".mt-1").text().pisah("•")
+    jika (link) {
+      result.tambah({ title, size: elm[0]?.rapikan(), upload_at: elm[1]?.rapikan(), link })
+    }
+  })
+  kembalikan result
+}, download: asinkron (url, resultBuffer = salah) =>  {
+  coba {
+    misal h = sfile.createHeaders(url)
+    tetap init = tunggu sfile.makeRequest(url, { headers: h })
+    jika (bukan init.ok) {
+      lempar baru Error(`Init request gagal (${init.status})`)
+    }
+    tetap htmlInit = tunggu init.text()
+    tetap ck = sfile.extractCookies(init.headers)
+    jika (ck) {
+      h.Cookie = ck
+    }
+    misal $ = cheerio.load(htmlInit)
+    tetap meta = sfile.extractMetadata($)
+    tetap dl = $("#download").attr("data-dw-url")
+    jika (bukan dl) {
+      lempar baru Error("Download URL gak ketemu")
+    }
+    h.Referer = dl
+    tetap proc = tunggu sfile.makeRequest(dl, { headers: h })
+    jika (bukan proc.ok) {
+      lempar baru Error(`Process request gagal (${proc.status})`)
+    }
+    tetap htmlProc = tunggu proc.text()
+    $ = cheerio.load(htmlProc)
+    tetap scr = $("script").petakan((i, el) => $(el).html()).get().gabung("\n")
+    tetap re = /https:\\\/\\\/download\d+\.sfile\.co\\\/downloadfile\\\/\d+\\\/\d+\\\/[a-z0-9]+\\\/[^\s'"]+\.[a-z0-9]+(\?[^"']+)?/gi
+    tetap mt = scr.cocok(re)
+    jika (bukan mt?.panjang) {
+      lempar baru Error("Link download final gak ketemu di script")
+    }
+    tetap fin = mt[0].ganti(/\\\//g, "/")
+    misal download
+    jika (resultBuffer) {
+      tetap fileRes = tunggu fetch(fin, { headers: h })
+      jika (bukan fileRes.ok) {
+        lempar baru Error(`File download gagal (${fileRes.status})`)
+      }
+      tetap arrayBuffer = tunggu fileRes.arrayBuffer()
+      download = Buffer.from(arrayBuffer)
+    } lainnya {
+      download = fin
+    }
+    kembalikan { metadata: meta, download }
+  } tangkap (e) {
+    lempar baru Error(e.message)
+  }
+} }

@@ -1,0 +1,65 @@
+impor * sebagai cheerio dari "cheerio"
+tetap mediaRegex = /https?:\/\/(www\.)?mediafire\.com\/(file|folder)\/(\w+)/
+misal handler = asinkron (m, { conn, text, usedPrefix, command }) =>  {
+  jika (bukan text) {
+    lempar `Contoh:
+${usedPrefix}${command} https://www.mediafire.com/file/941xczxhn27qbby/GBWA_V12.25FF-By.SamMods-.apk/file`
+  }
+  jika (bukan mediaRegex.uji(text)) {
+    lempar "Link tidak valid! Pastikan link Mediafire benar."
+  }
+  coba {
+    misal res = tunggu mediafire(text)
+    misal caption = `
+*💌 Nama:* ${res.filename}
+*📊 Size:* ${res.sizeReadable}
+*🗂️ FileType :* ${res.filetype}
+*📦 MimeType:* ${res.mimetype}
+*🔐 Privasi:* ${res.privacy}
+*👤 Owner:* ${res.owner_name}
+`.rapikan()
+    tunggu m.reply(caption)
+    tunggu conn.sendMessage(m.chat, { document: { url: res.download }, fileName: res.filename, mimetype: res.mimetype }, { quoted: m })
+  } tangkap (e) {
+    Konsol.galat(e)
+    m.reply("Gagal mengambil file dari Mediafire.")
+  }
+}
+handler.help = ["mediafire"]
+handler.tags = ["downloader"]
+handler.command = /^(mediafire|mf)$/i
+handler.limit = benar
+ekspor bawaan handler
+asinkron fungsi mediafire(url) {
+  tetap match = mediaRegex.jalankan(url)
+  jika (bukan match) {
+    lempar "URL tidak valid!"
+  }
+  tetap id = match[3]
+  tetap response = tunggu fetch(url)
+  tetap html = tunggu response.text()
+  tetap $ = cheerio.load(html)
+  tetap download = $("a#downloadButton").attr("href")
+  jika (bukan download) {
+    lempar "Gagal mengambil link unduhan dari halaman Mediafire."
+  }
+  tetap infoResponse = tunggu fetch(`https://www.mediafire.com/api/1.5/file/get_info.php?response_format=json&quick_key=${id}`)
+  tetap json = tunggu infoResponse.json()
+  jika (json.response.result != "Success") {
+    lempar "Gagal mengambil info file."
+  }
+  tetap info = json.response.file_info
+  tetap size = uraiBulat(info.size)
+  tetap ext = info.filename.pisah(".").hapusAkhir()
+  kembalikan { filename: info.filename, ext: ext, size: size, sizeReadable: formatBytes(size), download: download, filetype: info.filetype, mimetype: info.mimetype atau `application/${ext}`, privacy: info.privacy, owner_name: info.owner_name }
+}
+fungsi formatBytes(bytes, decimals = 2) {
+  jika (bytes == 0) {
+    kembalikan "0 Bytes"
+  }
+  tetap k = 1024
+  tetap dm = decimals < 0 ? 0 : decimals
+  tetap sizes = ["Bytes", "KB", "MB", "GB", "TB"]
+  tetap i = Matematika.bawah(Matematika.log(bytes) / Matematika.log(k))
+  kembalikan `${uraiAngka((bytes / Matematika.pangkat(k, i)).keTetap(dm))} ${sizes[i]}`
+}

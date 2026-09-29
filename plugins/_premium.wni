@@ -1,0 +1,9 @@
+misal handler = (m) => m
+handler.before = asinkron fungsi(m) {
+  misal user = db.data.users[m.sender]
+  jika (baru Tanggal() - user.premiumTime > 0) {
+    user.premiumTime = 0
+    user.premium = salah
+  }
+}
+ekspor bawaan handler

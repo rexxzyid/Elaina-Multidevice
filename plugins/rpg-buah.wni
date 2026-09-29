@@ -1,0 +1,23 @@
+misal handler = asinkron (m, { usedPrefix }) =>  {
+  misal user = global.db.data.users[m.sender]
+  misal ini_txt = `[ *GUDANG BUAH KAMU* ]
+
+`
+  ini_txt += `${user.pisang} Pisang
+`
+  ini_txt += `${user.anggur} Anggur
+`
+  ini_txt += `${user.mangga} Mangga
+`
+  ini_txt += `${user.jeruk} Jeruk
+`
+  ini_txt += `${user.apel} Apel
+
+`
+  ini_txt += `Ketik *${usedPrefix}jual* Untuk Menjual.`
+  m.reply(ini_txt)
+}
+handler.help = ["listbuah"]
+handler.tags = ["rpg"]
+handler.command = /^((list)?(buah|fruits?))$/i
+ekspor bawaan handler

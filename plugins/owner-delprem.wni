@@ -1,0 +1,28 @@
+misal handler = asinkron (m, { conn, text }) =>  {
+  jika (bukan text) {
+    lempar "Number?."
+  }
+  misal who
+  jika (m.isGroup) {
+    jika (bukan m.mentionedJid) {
+      lempar "No user mentioned to ban."
+    }
+    who = m.mentionedJid[0]
+  } lainnya {
+    misal phoneNumber = text.ganti(/[^0-9]/g, "")
+    who = phoneNumber + "@s.whatsapp.net"
+  }
+  misal users = global.db.data.users
+  jika (users[who]) {
+    users[who].premium = salah
+    users[who].premiumTime = 0
+    conn.reply(m.chat, "Done!", m)
+  } lainnya {
+    lempar "User not found."
+  }
+}
+handler.help = ["delprem"]
+handler.tags = ["owner"]
+handler.command = /^delprem(user)?$/i
+handler.owner = benar
+ekspor bawaan handler

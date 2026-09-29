@@ -1,0 +1,84 @@
+misal confirm = {}
+asinkron fungsi handler(m, { conn, args }) {
+  jika (m.sender dalam confirm) {
+    lempar "Kamu masih melakukan judi, tunggu sampai selesai!"
+  }
+  coba {
+    misal user = global.db.data.users[m.sender]
+    misal jumlah = args[0] dan number(uraiBulat(args[0])) ? Matematika.maks(uraiBulat(args[0]), 1) : /all/i.uji(args[0]) ? Matematika.bawah(user.money) : 1
+    jika (user.money < jumlah) {
+      kembalikan m.reply("Uang kamu tidak cukup!")
+    }
+    confirm[m.sender] = { count: jumlah, timeout: aturWaktu(() =>  {
+      m.reply("Waktu habis! Judi dibatalkan.")
+      hapus confirm[m.sender]
+    }, 60000) }
+    conn.reply(m.chat, `Apakah kamu yakin ingin judi?
+
+*Taruhan:* ${jumlah}
+Waktu: 60 detik
+Balas *Iya* untuk lanjut, *Tidak* untuk batal.`, m)
+  } tangkap (e) {
+    Konsol.galat(e)
+    jika (m.sender dalam confirm) {
+      hapusWaktu(confirm[m.sender].timeout)
+      hapus confirm[m.sender]
+    }
+    m.reply("Terjadi kesalahan (dibatalkan).")
+  }
+}
+handler.before = asinkron (m) =>  {
+  jika (bukan (m.sender dalam confirm)) {
+    kembalikan
+  }
+  jika (m.isBaileys) {
+    kembalikan
+  }
+  misal session = confirm[m.sender]
+  misal user = global.db.data.users[m.sender]
+  misal txt = (m.msg?.selectedDisplayText atau m.text atau "").rapikan().kecil()
+  jika (/^(iya|ya|y|yes)$/i.uji(txt)) {
+    hapusWaktu(session.timeout)
+    misal taruhan = session.count
+    misal bot = Matematika.atas(Matematika.acak() * 91)
+    misal kamu = Matematika.bawah(Matematika.acak() * 71)
+    misal status
+    misal text
+    jika (kamu > bot) {
+      user.money += taruhan
+      status = "Menang"
+      text = `Mendapatkan Uang Sebesar *+${taruhan}*`
+    } lainnya jika (kamu < bot) {
+      user.money -= taruhan
+      status = "Kalah"
+      text = `Kehilangan Uang Sebesar *-${taruhan}*`
+    } lainnya {
+      misal bonus = Matematika.bawah(taruhan / 1.5)
+      user.money += bonus
+      status = "Seri"
+      text = `Mendapatkan Uang *+${bonus}*`
+    }
+    m.reply(`
+*Bot:*   ${bot}
+*Kamu:* ${kamu}
+
+Kamu *${status}*, Kamu ${text}
+            `.rapikan())
+    hapus confirm[m.sender]
+    kembalikan benar
+  }
+  jika (/^(tidak|n|no|ga|gak)$/i.uji(txt)) {
+    hapusWaktu(session.timeout)
+    hapus confirm[m.sender]
+    m.reply("Dibatalkan.")
+    kembalikan benar
+  }
+}
+handler.help = ["judi"]
+handler.tags = ["rpg"]
+handler.command = /^(judi|bet)$/i
+ekspor bawaan handler
+fungsi number(x = 0) {
+  x = uraiBulat(x)
+  kembalikan bukan adalahNaN(x) dan jenisdari x == "number"
+}

@@ -1,0 +1,38 @@
+impor cp, { exec sebagai _exec } dari "child_process"
+impor { promisify } dari "util"
+misal exec = promisify(_exec).bind(cp)
+misal handler = asinkron (m, { usedPrefix, command, text }) =>  {
+  misal ar = Objek.kunci(plugins)
+  misal ar1 = ar.petakan((v) => v.ganti(".js", ""))
+  jika (bukan text) {
+    lempar `uhm.. where the text?
+
+example:
+${usedPrefix + command} info`
+  }
+  jika (bukan ar1.berisi(text)) {
+    lempar `*🗃️ NOT FOUND!*
+==================================
+
+${ar1.petakan((v) => " " + v).join("\n")}`
+  }
+  misal o
+  coba {
+    o = tunggu exec("cat plugins/" + text + ".js")
+  } tangkap (e) {
+    o = e
+  } akhirnya {
+    misal { stdout, stderr } = o
+    jika (stdout.rapikan()) {
+      m.reply(stdout)
+    }
+    jika (stderr.rapikan()) {
+      m.reply(stderr)
+    }
+  }
+}
+handler.help = ["getplugin"].petakan((v) => v + " <text>")
+handler.tags = ["owner"]
+handler.command = /^(getplugin|gp)$/i
+handler.owner = benar
+ekspor bawaan handler
