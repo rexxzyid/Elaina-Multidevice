@@ -1,0 +1,23 @@
+misal handler = asinkron (m, { text }) =>  {
+  misal q = m.quoted ? m.quoted : m
+  misal mime = (q.msg atau q).mimetype atau ""
+  jika (/image|video|webp/.uji(mime)) {
+    jika ((q.msg?.seconds atau q.seconds) > 10) {
+      kembalikan m.reply("Video harus berdurasi di bawah 10 detik.")
+    }
+    misal media = tunggu q.download()
+    misal exif
+    jika (text) {
+      tetap [packname, author] = text.pisah(/[,|\-+&]/)
+      exif = { packName: packname atau "", packPublish: author atau "" }
+    }
+    conn.sendSticker(m.chat, media, m, exif)
+  } lainnya {
+    m.reply("Kirim atau reply media untuk dijadikan stiker.")
+  }
+}
+handler.help = ["sticker"]
+handler.tags = ["sticker"]
+handler.command = /^s(tic?ker)?(gif)?$/i
+handler.register = benar
+ekspor bawaan handler

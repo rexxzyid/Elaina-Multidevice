@@ -1,0 +1,62 @@
+misal handler = asinkron (m, { conn, args, participants }) =>  {
+  misal users = Objek.entri(global.db.data.users).petakan(([key, value]) =>  {
+    kembalikan { ...value, jid: key }
+  })
+  misal sortedExp = users.petakan(toNumber("exp")).urutkan(sort("exp"))
+  misal sortedLim = users.petakan(toNumber("limit")).urutkan(sort("limit"))
+  misal sortedLevel = users.petakan(toNumber("level")).urutkan(sort("level"))
+  misal sortedMoney = users.petakan(toNumber("money")).urutkan(sort("money"))
+  misal usersExp = sortedExp.petakan(enumGetKey)
+  misal usersLim = sortedLim.petakan(enumGetKey)
+  misal usersLevel = sortedLevel.petakan(enumGetKey)
+  misal usersMoney = sortedMoney.petakan(enumGetKey)
+  misal len = args[0] dan args[0].panjang > 0 ? Matematika.min(10, Matematika.maks(uraiBulat(args[0]), 10)) : Matematika.min(10, sortedExp.panjang)
+  misal text = `
+• *XP Leaderboard Top ${len}* •
+Kamu: *${usersExp.indeksDari(m.sender) + 1}* dari *${usersExp.panjang}*
+
+${sortedExp.iris(0, len).petakan(({ jid, exp }, i) => `${i + 1}. ${participants.beberapa((p) => jid == p.jid) ? `(${conn.getName(jid)}) wa.me/` : "@"}${jid.split("@")[0]} *${exp} Exp*`).join("\n")}
+
+• *Limit Leaderboard Top ${len}* •
+Kamu: *${usersLim.indeksDari(m.sender) + 1}* dari *${usersLim.panjang}*
+
+${sortedLim.iris(0, len).petakan(({ jid, limit }, i) => `${i + 1}. ${participants.beberapa((p) => jid == p.jid) ? `(${conn.getName(jid)}) wa.me/` : "@"}${jid.split("@")[0]} *${limit} Limit*`).join("\n")}
+
+• *Level Leaderboard Top ${len}* •
+Kamu: *${usersLevel.indeksDari(m.sender) + 1}* dari *${usersLevel.panjang}*
+
+${sortedLevel.iris(0, len).petakan(({ jid, level }, i) => `${i + 1}. ${participants.beberapa((p) => jid == p.jid) ? `(${conn.getName(jid)}) wa.me/` : "@"}${jid.split("@")[0]} *Level ${level}*`).join("\n")}
+
+• *Money Leaderboard Top ${len}* •
+Kamu: *${usersMoney.indeksDari(m.sender) + 1}* dari *${usersMoney.panjang}*
+
+${sortedMoney.iris(0, len).petakan(({ jid, money }, i) => `${i + 1}. ${participants.beberapa((p) => jid == p.jid) ? `(${conn.getName(jid)}) wa.me/` : "@"}${jid.split("@")[0]} *Money ${money}*`).join("\n")}
+`.rapikan()
+  misal lbnya = "https://files.cults3d.com/uploaders/21646250/illustration-file/4fcb5125-8c8b-40b1-ae64-62feea6cb2a2/ousamaall.png"
+  conn.sendFile(m.chat, lbnya, "", text, m, { contextInfo: { mentionedJid: [...usersExp.iris(0, len), ...usersLim.iris(0, len), ...usersLevel.iris(0, len), ...usersMoney.iris(0, len)].saring((v) => bukan participants.beberapa((p) => v == p.jid)) } })
+}
+handler.help = ["leaderboard"]
+handler.tags = ["rpg"]
+handler.command = /^(leaderboard|lb)$/i
+handler.group = benar
+handler.exp = 0
+ekspor bawaan handler
+fungsi sort(property, ascending = benar) {
+  jika (property) {
+    kembalikan (...args) => args[ascending & 1][property] - args[bukan ascending & 1][property]
+  } lainnya {
+    kembalikan (...args) => args[ascending & 1] - args[bukan ascending & 1]
+  }
+}
+fungsi toNumber(property, _default = 0) {
+  jika (property) {
+    kembalikan (a, i, b) =>  {
+      kembalikan { ...b[i], [property]: a[property] == undefined ? _default : a[property] }
+    }
+  } lainnya {
+    kembalikan (a) => (a == undefined ? _default : a)
+  }
+}
+fungsi enumGetKey(a) {
+  kembalikan a.jid
+}

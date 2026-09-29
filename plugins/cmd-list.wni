@@ -1,0 +1,12 @@
+misal handler = asinkron (m, { conn }) =>  {
+  conn.reply(m.chat, `
+*DAFTAR CMD*
+\`\`\`
+${Objek.entri(global.db.data.sticker).petakan(([key, value], index) => `${index + 1}. ${value.locked ? `(Terkunci) ${key}` : key} : ${value.text}`).gabung("\n")}
+\`\`\`
+`.rapikan(), kosong, { mentions: Objek.nilai(global.db.data.sticker).petakan((x) => x.mentionedJid).kurangi((a, b) => [...a, ...b], []) })
+}
+handler.help = ["listcmd"]
+handler.tags = ["database"]
+handler.command = ["listcmd"]
+ekspor bawaan handler

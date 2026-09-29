@@ -1,0 +1,38 @@
+misal handler = (m) => m
+handler.before = asinkron fungsi(m) {
+  misal user = db.data.users[m.sender]
+  jika (user.sword > 0) {
+    jika (user.sworddurability < 1) {
+      user.sworddurability = 30
+      user.sword -= 1
+    }
+  }
+  jika (user.sword == 0) {
+    user.sworddurability = 0
+  }
+  jika (user.pickaxe > 0) {
+    jika (user.pickaxedurability < 1) {
+      user.pickaxedurability = 30
+      user.pickaxe -= 1
+    }
+  }
+  jika (user.pickaxe == 0) {
+    user.pickaxedurability = 0
+  }
+  jika (user.armor > 0) {
+    jika (user.armordurability < 1) {
+      user.armordurability = 30
+      user.armor -= 1
+    }
+  }
+  jika (user.armor == 0) {
+    user.armordurability = 0
+  }
+  jika (user.health > 100) {
+    user.health = 100
+  }
+  jika (user.health < 0) {
+    user.health = 0
+  }
+}
+ekspor bawaan handler

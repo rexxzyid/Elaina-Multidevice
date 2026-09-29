@@ -1,0 +1,47 @@
+misal handler = asinkron (m, { text, usedPrefix, command }) =>  {
+  coba {
+    tetap input = m.quoted ? m.quoted.text : text
+    tetap regex = /(https?:\/\/(?:www\.)?instagram\.com\/(p|reel)\/[a-zA-Z0-9_-]+\/?)/
+    tetap parseUrl = input.cocok(regex)?.[0]
+    jika (bukan parseUrl) {
+      lempar `# Cara Penggunaan
+
+` + `> Masukkan URL Instagram untuk mengunduh konten
+
+` + `# Contoh Penggunaan
+` + `> *${usedPrefix + command} https://www.instagram.com/*`
+    }
+    tetap res = tunggu igdl(parseUrl)
+    jika (res.error) {
+      lempar "Gagal ambil konten dari Instagram~"
+    }
+    tetap result = res.info
+    jika (res.media_type == "photo") {
+      jika (result.panjang > 1) {
+        tetap medias = result.petakan((v) => ({ image: { url: v.url } }))
+        tunggu conn.sendAlbumMessage(m.chat, medias, { quoted: m })
+      }
+      jika (result.panjang == 1) {
+        conn.sendFile(m.chat, result[0].url, "", "kyah", m)
+      }
+    } lainnya {
+      conn.sendFile(m.chat, result[0].url, "", "kyah", m)
+    }
+  } tangkap (err) {
+    Konsol.galat("Instagram Error:", err.message)
+    m.reply("Ada error waktu ambil media IG-nya~")
+  }
+}
+handler.help = ["igdl"]
+handler.tags = ["downloader"]
+handler.command = /^(igdl|instagdramdl)$/i
+handler.limit = benar
+ekspor bawaan handler
+asinkron fungsi igdl(url) {
+  tetap res = tunggu fetch("https://vdraw.ai/api/v1/instagram/ins-info", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.teks({ url, type: "video" }) })
+  jika (bukan res.ok) {
+    lempar baru Error(`HTTP error! Status: ${res.status}`)
+  }
+  tetap json = tunggu res.json()
+  kembalikan json?.data
+}

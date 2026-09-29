@@ -1,0 +1,29 @@
+ekspor fungsi before(m) {
+  misal user = global.db.data.users[m.sender]
+  jika (user?.afk > -1) {
+    m.reply(`
+${conn.getName(m.sender)} berhenti AFK${user.afkReason ? " setelah " + user.afkReason : ""}
+Selama ${(baru Tanggal() - user.afk).toTimeString()}
+  `.rapikan())
+    user.afk = -1
+    user.afkReason = ""
+  }
+  misal jids = [...baru Himpunan([...(m.mentionedJid atau []), ...(m.quoted ? [m.quoted.sender] : [])])]
+  untuk (misal jid dari jids) {
+    misal user = global.db.data.users[jid]
+    jika (bukan user) {
+      lanjut
+    }
+    misal afkTime = user.afk
+    jika (bukan afkTime atau afkTime < 0) {
+      lanjut
+    }
+    misal reason = user.afkReason
+    m.reply(`
+${conn.getName(m.sender)} Jangan tag dia!
+Dia sedang AFK ${reason ? "dengan alasan " + reason : "tanpa alasan"}
+Selama ${(baru Tanggal() - afkTime).toTimeString()}
+  `.rapikan())
+  }
+  kembalikan benar
+}

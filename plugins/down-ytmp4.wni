@@ -1,0 +1,25 @@
+impor { ytdown } dari "./down-ytmp3.wni"
+misal handler = asinkron (m, { usedPrefix, command, text }) =>  {
+  jika (bukan text) {
+    lempar `Usage: ${usedPrefix + command} <YouTube Video URL>`
+  }
+  m.react("🔁")
+  coba {
+    tetap dl = tunggu ytdown(text, "video")
+    tetap info = dl.info
+    tetap sthumb = tunggu conn.adReply(m.chat, `– 乂 *YouTube - Video*
+> *- Judul :* ${info.title}
+> *- Channel :* ${info.uploader}
+> *- Durasi :* ${info.duration}
+> *- Views :* ${info.views}
+> *- Size :* ${info.size}`, info.thumbnail, m, { title: info.title, source: text })
+    tunggu conn.sendMessage(m.chat, { video: { url: dl.download }, fileName: `${info.title}.mp4` }, { quoted: sthumb })
+  } tangkap (e) {
+    kembalikan m.reply(e.message)
+  }
+}
+handler.help = ["ytmp4"]
+handler.tags = ["downloader"]
+handler.command = /^(ytv|ytmp4|ytvideo)$/i
+handler.limit = benar
+ekspor bawaan handler

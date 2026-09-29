@@ -1,0 +1,49 @@
+impor axios dari "axios"
+impor { toAudio } dari "../lib/converter.wni"
+misal handler = asinkron (m, { usedPrefix, command, text }) =>  {
+  jika (bukan text) {
+    lempar `Usage: ${usedPrefix + command} <YouTube Audio URL>`
+  }
+  m.react("🔁")
+  coba {
+    tetap dl = tunggu ytdown(text, "audio")
+    tetap info = dl.info
+    tetap sthumb = tunggu conn.adReply(m.chat, `– 乂 *YouTube - Audio*
+> *- Judul :* ${info.title}
+> *- Channel :* ${info.uploader}
+> *- Durasi :* ${info.duration}
+> *- Views :* ${info.views}
+> *- Size :* ${info.size}`, info.thumbnail, m, { title: info.title, source: text })
+    tetap { data, ext } = tunggu conn.getFile(dl.download)
+    tetap audios = tunggu toAudio(data, ext)
+    tunggu conn.sendMessage(m.chat, { audio: audios.data, mimetype: "audio/mpeg", fileName: `${info.title}.mp3` }, { quoted: sthumb })
+  } tangkap (e) {
+    kembalikan m.reply(e.message)
+  }
+}
+handler.help = ["ytmp3"]
+handler.tags = ["downloader"]
+handler.command = /^(yta|ytmp3|ytaudio)$/i
+handler.limit = benar
+ekspor bawaan handler
+ekspor asinkron fungsi ytdown(url, type = "video") {
+  tetap { data } = tunggu axios.post("https://app.ytdown.to/proxy.php", baru URLSearchParams({ url }), { headers: { "Content-Type": "application/x-www-form-urlencoded" } })
+  tetap api = data.api
+  jika (api?.status == "ERROR") {
+    lempar baru Error(api.message)
+  }
+  tetap media = api?.mediaItems?.cari((m) => m.type.kecil() == type.kecil())
+  jika (bukan media) {
+    lempar baru Error("Media type not found")
+  }
+  selama (benar) {
+    tetap { data: res } = tunggu axios.get(media.mediaUrl)
+    jika (res?.error == "METADATA_NOT_FOUND") {
+      lempar baru Error("Metadata not found")
+    }
+    jika (res?.percent == "Completed" dan res?.fileUrl != "In Processing...") {
+      kembalikan { info: { title: api.title, desc: api.description, thumbnail: api.imagePreviewUrl, views: api.mediaStats?.viewsCount, uploader: api.userInfo?.name, quality: media.mediaQuality, duration: media.mediaDuration, extension: media.mediaExtension, size: media.mediaFileSize }, download: res.fileUrl }
+    }
+    tunggu baileys.delay(5000)
+  }
+}

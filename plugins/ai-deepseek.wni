@@ -1,0 +1,48 @@
+misal handler = asinkron (m, { text, usedPrefix, command }) =>  {
+  tetap input = m.quoted ? m.quoted.text : text
+  jika (bukan input) {
+    lempar `Masukkan pertanyaan atau perintah!
+
+Contoh:
+${usedPrefix + command} apa itu AI`
+  }
+  jika (bukan conn.deepseek) {
+    conn.deepseek = {}
+  }
+  jika (bukan conn.deepseek[m.sender]) {
+    conn.deepseek[m.sender] = []
+  }
+  conn.deepseek[m.sender].tambah({ role: "user", content: input })
+  coba {
+    tetap res = tunggu deepinfra("deepseek-ai/DeepSeek-V3.2", conn.deepseek[m.sender])
+    conn.deepseek[m.sender].tambah({ role: "assistant", content: res })
+    m.reply(res)
+  } tangkap (err) {
+    m.reply("Terjadi Kesalahan")
+    Konsol.galat(err)
+  }
+}
+handler.help = ["deepseek"]
+handler.tags = ["ai"]
+handler.command = /^deepseek|depseek|deepsek|dipsek$/i
+handler.register = benar
+handler.limit = benar
+ekspor bawaan handler
+ekspor asinkron fungsi deepinfra(model, history) {
+  coba {
+    tetap res = tunggu fetch("https://api.deepinfra.com/v1/openai/chat/completions", { method: "POST", headers: { "User-Agent": "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Mobile Safari/537.36", "Content-Type": "application/json" }, body: JSON.teks({ model, messages: history }) })
+    jika (bukan res.ok) {
+      lempar baru Error(`HTTP Error ${res.status}`)
+    }
+    tetap data = tunggu res.json()
+    misal teks = []
+    untuk (misal out dari data?.choices atau []) {
+      jika (out.message?.content) {
+        teks.tambah(out.message.content)
+      }
+    }
+    kembalikan teks.gabung("\n")
+  } tangkap (e) {
+    lempar baru Error("Error" + e?.message)
+  }
+}

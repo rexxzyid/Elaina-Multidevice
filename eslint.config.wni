@@ -1,0 +1,4 @@
+impor js dari "@eslint/js"
+impor globals dari "globals"
+impor { defineConfig } dari "eslint/config"
+ekspor bawaan defineConfig([{ ignores: ["main.js", "tmp/**", "media/**"] }, { files: ["**/*.{js,mjs,cjs}"], languageOptions: { ecmaVersion: "latest", sourceType: "module", globals: { ...globals.node } }, extends: [js.configs.recommended], rules: { "no-undef": "off", "no-empty": "off", "no-unused-vars": ["warn", { varsIgnorePattern: "^_", argsIgnorePattern: "^_" }] } }])

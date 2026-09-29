@@ -1,0 +1,10 @@
+misal handler = asinkron (m) =>  {
+  tetap res = tunggu fetch("https://raw.githubusercontent.com/BochilTeam/database/master/kata-kata/truth.json")
+  tetap result = tunggu res.json()
+  misal truth = result.data.getRandom()
+  m.reply(truth)
+}
+handler.help = ["truth"]
+handler.tags = ["fun"]
+handler.command = /^(truth)$/i
+ekspor bawaan handler

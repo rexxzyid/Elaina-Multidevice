@@ -1,0 +1,26 @@
+ekspor asinkron fungsi all(m, chatUpdate) {
+  jika (m.isBaileys) {
+    kembalikan
+  }
+  jika (bukan m.message) {
+    kembalikan
+  }
+  jika (bukan m.msg?.fileSha256) {
+    kembalikan
+  }
+  misal hash = Buffer.from(m.msg.fileSha256).toString("base64")
+  jika (bukan (hash dalam global.db.data.sticker)) {
+    kembalikan
+  }
+  misal { text, mentionedJid } = global.db.data.sticker[hash]
+  misal messages = tunggu baileys.generateWAMessage(m.sender, { text: text, mentions: mentionedJid }, { userJid: ini.user.jid, quoted: m.quoted dan m.quoted.fakeObj })
+  messages.key.remoteJid = m.chat
+  messages.key.fromMe = baileys.areJidsSameUser(m.chat, ini.user.id)
+  messages.key.id = m.key.id
+  messages.pushName = m.pushName
+  jika (m.isGroup) {
+    messages.key.participant = m.sender
+  }
+  misal msg = { ...chatUpdate, messages: [baileys.proto.WebMessageInfo.create(messages)], type: "append" }
+  ini.ev.emit("messages.upsert", msg)
+}

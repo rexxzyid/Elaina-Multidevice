@@ -1,0 +1,107 @@
+impor moment dari "moment-timezone"
+impor * sebagai levelling dari "../lib/levelling.wni"
+impor fs dari "fs"
+tetap handler = asinkron (m, { conn, usedPrefix: _p, command, isOwner, args }) =>  {
+  tetap allTags = { main: "Main Menu", ai: "Ai Menu", downloader: "Downloader Menu", database: "Database Menu", sticker: "Sticker Menu", tools: "Tools Menu", rpg: "Rpg Menu", fun: "Fun Menu", group: "Group Menu", xp: "XP & Level Menu", info: "Info Menu", owner: "Owner Menu" }
+  misal teks = (args[0] atau "").kecil()
+  misal tags = {}
+  jika (bukan Objek.kunci(allTags).berisi(teks) dan bukan Objek.nilai(allTags).beberapa((v) => v.kecil().berisi(teks))) {
+    teks = "all"
+  }
+  tags = teks == "all" ? { ...allTags } : Objek.dariEntri(Objek.entri(allTags).saring(([k, v]) => k == teks atau v.kecil().berisi(teks)))
+  jika (bukan isOwner) {
+    hapus tags.owner
+  }
+  jika (bukan m.isGroup) {
+    hapus tags.group
+  }
+  tetap defaultMenu = { before: `
+┌ ◦ *[ %me ]*
+├ *${ucapan()} %name*
+│
+│ ◦ Limit : *%limit*
+│ ◦ Role : *%role*
+│ ◦ Level : *%level (%exp / %maxexp)* [%xp4levelup]
+│ ◦ %totalexp XP secara Total
+│
+│ ◦ Tanggal: *%week, %date*
+│ ◦ Uptime: *%uptime*
+│ ◦ Database: %rtotalreg dari %totalreg
+│
+│ ◦ Note :
+│ ◦ *🄿* = Premium
+│ ◦ *🄻* = Limit
+└────
+%readmore`.rapikan(), header: "┌ ◦ *[ %category ]*", body: "│ ◦ %cmd %flags", footer: "└—", after: "" }
+  coba {
+    tetap plugins = Objek.nilai(global.plugins).saring((p) => bukan p.disabled)
+    tetap help = plugins.petakan((p) => ({ help: Larik.isArray(p.help) ? p.help : [p.help], tags: Larik.isArray(p.tags) ? p.tags : [p.tags], prefix: "customPrefix" dalam p, limit: p.limit ? "🄻" : "", premium: p.premium ? "🄿" : "", owner: p.owner ? "🄾" : "" }))
+    tetap rows = []
+    Objek.kunci(allTags).petakan((tag) =>  {
+      rows.tambah({ title: allTags[tag] + "😜", description: "Untuk Menampilkan " + tag, id: `${_p + command} ${tag}` })
+    })
+    tetap text = [defaultMenu.before, ...Objek.kunci(tags).petakan((tag) =>  {
+      tetap items = help.saring((p) => p.tags.berisi(tag)).ratakanPeta((p) => p.help.petakan((h) =>  {
+        tetap cmd = p.prefix ? h : `${_p}${h}`
+        tetap flags = [p.limit, p.premium, p.owner, p.rowner].gabung(" ")
+        kembalikan defaultMenu.body.ganti(/%cmd/g, cmd).ganti(/%flags/g, flags).rapikan()
+      })).gabung("\n")
+      kembalikan `${defaultMenu.header.ganti(/%category/g, tags[tag])}
+${items}
+${defaultMenu.footer}`
+    }), defaultMenu.after].gabung("\n")
+    misal { exp, limit, money, level, role, registered } = global.db.data.users[m.sender]
+    misal { min, xp, max } = levelling.xpRange(level, global.multiplier)
+    misal name = registered ? global.db.data.users[m.sender].name : conn.getName(m.sender)
+    misal _uptime = process.uptime() * 1000
+    misal uptime = clockString(_uptime)
+    misal totalreg = Objek.kunci(global.db.data.users).panjang
+    misal rtotalreg = Objek.nilai(global.db.data.users).saring((user) => user.registered == benar).panjang
+    misal d = baru Tanggal(baru Tanggal() + 3600000)
+    misal locale = "id-ID"
+    misal week = d.toLocaleDateString(locale, { weekday: "long" })
+    misal date = d.toLocaleDateString(locale, { day: "numeric", month: "long", year: "numeric" })
+    tetap replace = { "%": "", p: _p, uptime, me: conn.user.name, exp: exp - min, maxexp: xp, totalexp: exp, xp4levelup: max - exp <= 0 ? `Siap untuk *${_p}levelup*` : `${max - exp} XP lagi untuk levelup`, level, limit, name, money, week, date, totalreg, rtotalreg, role, readmore: readMore }
+    conn.sendButton(m.chat, { image: fs.readFileSync("./media/menu.jpg"), caption: style(text.ganti(baru RegEx(`%(${Objek.kunci(replace).urutkan((a, b) => b.panjang - a.panjang).join("|")})`, "g"), (_, name) => "" + replace[name])), footer: global.namebot, buttons: [{ name: "single_select", buttonParamsJson: JSON.teks({ title: "List Menu", sections: [{ rows }] }) }, { name: "quick_reply", buttonParamsJson: JSON.teks({ display_text: "Owner", id: _p + "owner" }) }, { name: "quick_reply", buttonParamsJson: JSON.teks({ display_text: "Script BOT", id: _p + "script" }) }], contextInfo: { mentionedJid: conn.parseMention(text), forwardingScore: 10, isForwarded: benar, forwardedNewsletterMessageInfo: { newsletterJid: "120363405875325459@newsletter", serverMessageId: 142, newsletterName: global.namebot } } }, { quoted: m })
+  } tangkap (e) {
+    Konsol.galat(e)
+    m.reply("Terjadi kesalahan saat menampilkan menu.")
+  }
+}
+handler.help = ["menu"]
+handler.command = /^(menu|help|\?)$/i
+handler.exp = 3
+ekspor bawaan handler
+tetap more = Teks.fromCharCode(8206)
+tetap readMore = more.ulangi(4001)
+fungsi style(text, style = 1) {
+  tetap xStr = "abcdefghijklmnopqrstuvwxyz1234567890".pisah("")
+  tetap yStr = { 1: "ᴀʙᴄᴅᴇꜰɢʜɪᴊᴋʟᴍɴᴏᴘqʀꜱᴛᴜᴠᴡxʏᴢ1234567890" }[style].pisah("")
+  kembalikan text.kecil().pisah("").petakan((char) =>  {
+    tetap i = xStr.indeksDari(char)
+    kembalikan i != -1 ? yStr[i] : char
+  }).gabung("")
+}
+fungsi clockString(ms) {
+  misal h = adalahNaN(ms) ? "--" : Matematika.bawah(ms / 3600000)
+  misal m = adalahNaN(ms) ? "--" : Matematika.bawah(ms / 60000) % 60
+  misal s = adalahNaN(ms) ? "--" : Matematika.bawah(ms / 1000) % 60
+  kembalikan [h, m, s].petakan((v) => v.toString().isiAwal(2, 0)).gabung(":")
+}
+fungsi ucapan() {
+  tetap time = moment.tz("Asia/Jakarta").format("HH")
+  misal res = "Selamat dinihari"
+  jika (time >= 4) {
+    res = "Selamat pagi"
+  }
+  jika (time > 10) {
+    res = "Selamat siang"
+  }
+  jika (time >= 15) {
+    res = "Selamat sore"
+  }
+  jika (time >= 18) {
+    res = "Selamat malam"
+  }
+  kembalikan res
+}

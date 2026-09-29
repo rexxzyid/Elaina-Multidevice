@@ -1,0 +1,71 @@
+misal handler = asinkron (m, { conn, usedPrefix }) =>  {
+  misal user = global.db.data.users[m.sender]
+  misal pemancing = tunggu conn.getName(m.sender)
+  coba {
+    misal now = Tanggal.now()
+    misal cooldown = 240000
+    misal diff = now - user.lastfishing
+    misal timers = clockString(cooldown - diff)
+    jika (user.fishingrod <= 0) {
+      kembalikan m.reply(`*Kamu Tidak Punya Kail Pancingan Dan Umpan 100*`)
+    }
+    jika (user.stamina < 20) {
+      kembalikan m.reply(`Stamina Kamu Tidak Cukup
+Harap Isi Stamina Kamu Dengan *${usedPrefix}eat*`)
+    }
+    jika (diff < cooldown) {
+      kembalikan m.reply(`Kamu Masih Kelelahan
+Harap Tunggu *${timers}* Lagi`)
+    }
+    misal nila = Matematika.bawah(Matematika.acak() * 10)
+    misal bawal = Matematika.bawah(Matematika.acak() * 10)
+    misal lele = Matematika.bawah(Matematika.acak() * 15)
+    misal ikan = Matematika.bawah(Matematika.acak() * 30)
+    misal udang = Matematika.bawah(Matematika.acak() * 39)
+    misal paus = Matematika.bawah(Matematika.acak() * 2)
+    misal kepiting = Matematika.bawah(Matematika.acak() * 27)
+    aturWaktu(() => conn.reply(m.chat, `${pemancing} Sedang Memancing...`, m), 0)
+    aturWaktu(() => conn.reply(m.chat, `${pemancing} Menunggu..`, m), 8000)
+    aturWaktu(() => conn.reply(m.chat, `${pemancing} Sepertinya Dapat Sesuatu..`, m), 28000)
+    aturWaktu(() =>  {
+      misal mcng = `
+*Hasil Mancing ${pemancing}!*
+
+Nila : ${nila}
+Bawal : ${bawal}
+Lele : ${lele}
+Ikan : ${ikan}
+Udang : ${udang}
+Paus : ${paus}
+Kepiting : ${kepiting}
+
+Kamu Bisa Memasak Ini, Dan Memakannya
+_Contoh:_
+${usedPrefix}cook
+`.rapikan()
+      conn.reply(m.chat, mcng)
+    }, 38000)
+    user.nila += nila
+    user.ikan += ikan
+    user.lele += lele
+    user.bawal += bawal
+    user.udang += udang
+    user.paus += paus
+    user.kepiting += kepiting
+    user.lastfishing = now
+  } tangkap (e) {
+    conn.reply(m.chat, "Error", m)
+    Konsol.cetak(e)
+  }
+}
+handler.help = ["mancing"]
+handler.tags = ["rpg"]
+handler.command = /^(fishing|mancing)$/i
+ekspor bawaan handler
+fungsi clockString(ms) {
+  misal d = adalahNaN(ms) ? "--" : Matematika.bawah(ms / 86400000)
+  misal h = adalahNaN(ms) ? "--" : Matematika.bawah(ms / 3600000) % 24
+  misal m = adalahNaN(ms) ? "--" : Matematika.bawah(ms / 60000) % 60
+  misal s = adalahNaN(ms) ? "--" : Matematika.bawah(ms / 1000) % 60
+  kembalikan ["\n" + d, " *Hari*\n ", h, " *Jam*\n ", m, " *Menit*\n ", s, " *Detik* "].petakan((v) => v.toString().isiAwal(2, 0)).gabung("")
+}

@@ -1,0 +1,37 @@
+impor { promises } dari "fs"
+impor { join } dari "path"
+impor { spawn } dari "child_process"
+asinkron fungsi ffmpeg(buffer, args = [], ext = "", ext2 = "") {
+  coba {
+    tetap tmp = join(global.__dirname(importMeta.url), "../tmp", Tanggal.now() + "." + ext)
+    tetap out = tmp + "." + ext2
+    tunggu promises.writeFile(tmp, buffer)
+    tunggu baru Janji((resolve, reject) =>  {
+      spawn("ffmpeg", ["-y", "-i", tmp, ...args, out]).on("error", reject).on("close", (code) =>  {
+        jika (code != 0) {
+          reject(baru Error(`FFmpeg exited with code ${code}`))
+        } lainnya {
+          resolve()
+        }
+      })
+    })
+    tetap data = tunggu promises.readFile(out)
+    kembalikan { data, filename: out, delete() {
+      kembalikan promises.unlink(out)
+    } }
+  } akhirnya {
+    coba {
+      tunggu promises.unlink(tmp)
+    } tangkap {}
+  }
+}
+fungsi toPTT(buffer, ext) {
+  kembalikan ffmpeg(buffer, ["-vn", "-c:a", "libopus", "-b:a", "128k", "-vbr", "on"], ext, "ogg")
+}
+fungsi toAudio(buffer, ext) {
+  kembalikan ffmpeg(buffer, ["-vn", "-ar", "44100", "-ac", "2", "-b:a", "192k", "-f", "mp3"], ext, "opus")
+}
+fungsi toVideo(buffer, ext) {
+  kembalikan ffmpeg(buffer, ["-c:v", "libx264", "-c:a", "aac", "-ab", "128k", "-ar", "44100", "-crf", "32", "-preset", "slow"], ext, "mp4")
+}
+ekspor { toAudio, toPTT, toVideo, ffmpeg }

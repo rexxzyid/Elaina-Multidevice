@@ -1,0 +1,86 @@
+impor { createRequire } dari "module"
+tetap require = createRequire(importMeta.url)
+tetap { Akinator } = require("@aqul/akinator-api")
+misal handler = asinkron (m, { conn }) =>  {
+  misal id = m.chat
+  jika (bukan conn.akinator) {
+    conn.akinator = baru Peta()
+  }
+  jika (conn.akinator.has(id)) {
+    kembalikan m.reply("🎯 Game Akinator sudah berjalan di chat ini.\nTekan tombol *Nyerah* untuk berhenti.")
+  }
+  coba {
+    tetap api = baru Akinator({ region: "id", childMode: benar })
+    tunggu api.start()
+    conn.akinator.set(id, api)
+    tetap progress = Matematika.bulatkan(api.progress)
+    tunggu conn.sendButton(m.chat, { image: { url: "https://raw.githubusercontent.com/Furqan-si/file-random/main/CD1D1464333.jpeg" }, body: `🎩 *Akinator*
+Pikirkan seseorang/karakter anime atau apapun dan aku akan menebaknya
+
+${api.question}
+
+📊 Progress : ${progress}%`, footer: "Pilih jawaban:", buttons: [{ name: "quick_reply", buttonParamsJson: JSON.teks({ display_text: "Ya", id: "1" }) }, { name: "quick_reply", buttonParamsJson: JSON.teks({ display_text: "Tidak", id: "2" }) }, { name: "quick_reply", buttonParamsJson: JSON.teks({ display_text: "Tidak tahu", id: "3" }) }, { name: "quick_reply", buttonParamsJson: JSON.teks({ display_text: "Mungkin", id: "4" }) }, { name: "quick_reply", buttonParamsJson: JSON.teks({ display_text: "Mungkin tidak", id: "5" }) }, { name: "quick_reply", buttonParamsJson: JSON.teks({ display_text: "🚪 Nyerah", id: "nyerah" }) }] }, { quoted: m })
+  } tangkap (e) {
+    Konsol.galat(e)
+    m.reply("❌ Gagal memulai Akinator.")
+  }
+}
+handler.before = asinkron fungsi(m) {
+  misal id = m.chat
+  jika (bukan ini.akinator atau bukan ini.akinator.has(id)) {
+    kembalikan
+  }
+  jika (bukan m.text) {
+    kembalikan
+  }
+  tetap session = ini.akinator.get(id)
+  jika (bukan session atau session.processing) {
+    kembalikan
+  }
+  session.processing = benar
+  tetap api = session
+  jika (/nyerah/i.uji(m.text)) {
+    ini.akinator.delete(id)
+    session.processing = salah
+    kembalikan m.reply("🚪 Game Akinator dihentikan.")
+  }
+  tetap answerMap = { "1": 0, "2": 1, "3": 2, "4": 3, "5": 4, "ya": 0, "tidak": 1, "tidak tahu": 2, "mungkin": 3, "mungkin tidak": 4 }
+  misal answer = answerMap[m.text.kecil().rapikan()]
+  jika (answer == undefined) {
+    session.processing = salah
+    kembalikan
+  }
+  coba {
+    tunggu api.answer(answer)
+    jika (api.isWin) {
+      misal caption = `🎉 *Akinator berhasil menebak!*
+
+`
+      caption += `👤 *${api.sugestion_name}*
+`
+      jika (api.sugestion_desc) {
+        caption += `${api.sugestion_desc}
+`
+      }
+      tunggu ini.sendButton(m.chat, { image: { url: api.sugestion_photo }, body: caption, footer: "Game selesai", buttons: [{ name: "quick_reply", buttonParamsJson: JSON.teks({ display_text: "Main Lagi", id: ".akinator" }) }] }, { quoted: m })
+      ini.akinator.delete(id)
+    } lainnya {
+      tetap progress = Matematika.bulatkan(api.progress)
+      tunggu ini.sendButton(m.chat, { body: `🎩 *Akinator*
+
+${api.question}
+
+📊 Progress : ${progress}%`, footer: "Pilih jawaban:", buttons: [{ name: "quick_reply", buttonParamsJson: JSON.teks({ display_text: "Ya", id: "1" }) }, { name: "quick_reply", buttonParamsJson: JSON.teks({ display_text: "Tidak", id: "2" }) }, { name: "quick_reply", buttonParamsJson: JSON.teks({ display_text: "Tidak tahu", id: "3" }) }, { name: "quick_reply", buttonParamsJson: JSON.teks({ display_text: "Mungkin", id: "4" }) }, { name: "quick_reply", buttonParamsJson: JSON.teks({ display_text: "Mungkin tidak", id: "5" }) }, { name: "quick_reply", buttonParamsJson: JSON.teks({ display_text: "🚪 Nyerah", id: "nyerah" }) }] }, { quoted: m })
+    }
+  } tangkap (e) {
+    Konsol.galat(e)
+    m.reply("❌ Terjadi error. Game dihentikan.")
+    ini.akinator.delete(id)
+  }
+  session.processing = salah
+}
+handler.help = ["akinator", "aki"]
+handler.tags = ["game"]
+handler.command = /^(akinator|aki)$/i
+handler.limit = benar
+ekspor bawaan handler

@@ -1,0 +1,88 @@
+tetap couriers = [{ code: "jne", name: "JNE Express" }, { code: "pos", name: "POS Indonesia" }, { code: "jnt", name: "J&T Express" }, { code: "jnt_cargo", name: "J&T Cargo" }, { code: "sicepat", name: "SiCepat" }, { code: "tiki", name: "TIKI" }, { code: "anteraja", name: "AnterAja" }, { code: "wahana", name: "Wahana" }, { code: "ninja", name: "Ninja Express" }, { code: "lion", name: "Lion Parcel" }, { code: "pcp", name: "PCP Express" }, { code: "jet", name: "JET Express" }, { code: "rex", name: "REX Express" }, { code: "first", name: "First Logistics" }, { code: "ide", name: "ID Express" }, { code: "spx", name: "Shopee Express" }, { code: "kgx", name: "KGXpress" }, { code: "sap", name: "SAP Express" }, { code: "rpx", name: "RPX" }, { code: "lex", name: "Lazada Express" }, { code: "indah_cargo", name: "Indah Cargo" }, { code: "dakota", name: "Dakota Cargo" }, { code: "kurir_tokopedia", name: "Kurir Tokopedia" }]
+misal handler = asinkron (m, { conn, args, usedPrefix, command }) =>  {
+  tetap el_api = "f76b9f991fe424356b9c6da407792b1d1fbf33ad7a197bd0755b557a05461262"
+  jika (bukan args[0]) {
+    kembalikan m.reply(`Masukkan nomor resi
+Contoh:
+${usedPrefix + command} 81902xxxx`)
+  }
+  jika (args.panjang == 1) {
+    misal resi = args[0]
+    misal buttons = [{ name: "single_select", buttonParamsJson: JSON.teks({ title: "Pilih Kurir", sections: [{ title: "Daftar Kurir", rows: couriers.petakan((v) => ({ title: v.name, description: `Cek resi via ${v.name}`, id: `${usedPrefix + command} ${v.code} ${resi}` })) }] }) }]
+    kembalikan conn.sendButton(m.chat, { text: `📦 *CEK RESI PAKET*
+
+Nomor Resi: *${resi}*
+
+Silakan pilih kurir pengiriman.`, footer: "Tracking Paket", buttons }, { quoted: m })
+  }
+  misal courier = args[0].kecil()
+  misal resi = args[1]
+  jika (bukan couriers.cari((v) => v.code == courier)) {
+    kembalikan m.reply(`Kurir *${courier}* tidak tersedia`)
+  }
+  jika (bukan resi) {
+    kembalikan m.reply(`Masukkan nomor resi
+Contoh:
+${usedPrefix + command} ${courier} 81902xxxx`)
+  }
+  coba {
+    misal res = tunggu fetch(`https://api.binderbyte.com/v1/track?api_key=${el_api}&courier=${courier}&awb=${resi}`)
+    misal elres = tunggu res.json()
+    misal teks = `📦 *TRACKING RESI*
+
+`
+    teks += `Status: ${elres.status}
+`
+    teks += `Pesan: ${elres.message}
+
+`
+    teks += `*Ringkasan*
+`
+    teks += `AWB: ${elres.data.summary.awb}
+`
+    teks += `Kurir: ${elres.data.summary.courier}
+`
+    teks += `Layanan: ${elres.data.summary.service}
+`
+    teks += `Status: ${elres.data.summary.status}
+`
+    teks += `Tanggal: ${elres.data.summary.date}
+`
+    teks += `Deskripsi: ${elres.data.summary.desc}
+`
+    teks += `Biaya: ${elres.data.summary.amount}
+`
+    teks += `Berat: ${elres.data.summary.weight}
+
+`
+    teks += `*Detail*
+`
+    teks += `Asal: ${elres.data.detail.origin}
+`
+    teks += `Tujuan: ${elres.data.detail.destination}
+`
+    teks += `Pengirim: ${elres.data.detail.shipper}
+`
+    teks += `Penerima: ${elres.data.detail.receiver}
+
+`
+    teks += `*Riwayat*
+`
+    elres.data.history.untukSetiap((v, i) =>  {
+      teks += `${i + 1}. ${v.date}
+`
+      teks += `   ${v.desc}
+`
+      teks += `   ${v.location}
+
+`
+    })
+    conn.sendMessage(m.chat, { text: teks }, { quoted: m })
+  } tangkap {
+    m.reply("Resi tidak ditemukan atau API error")
+  }
+}
+handler.help = ["cekresi"]
+handler.tags = ["tools"]
+handler.command = /^cekresi$/i
+ekspor bawaan handler

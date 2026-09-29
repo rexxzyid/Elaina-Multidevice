@@ -1,0 +1,75 @@
+Konsol.cetak("🐾 Starting...")
+impor { Worker } dari "worker_threads"
+impor { join, dirname } dari "path"
+impor { fileURLToPath } dari "url"
+impor { watchFile, unwatchFile } dari "fs"
+impor readline dari "readline"
+tetap __dirname = dirname(fileURLToPath(importMeta.url))
+tetap rl = readline.createInterface(process.stdin, process.stdout)
+misal worker = kosong
+misal running = salah
+misal restartTimer = kosong
+fungsi start(file) {
+  jika (running) {
+    kembalikan
+  }
+  running = benar
+  tetap full = join(__dirname, file)
+  jika (worker) {
+    worker.terminate()
+  }
+  worker = baru Worker(full)
+  jika (restartTimer) {
+    hapusWaktu(restartTimer)
+    restartTimer = kosong
+  }
+  worker.on("message", (msg) =>  {
+    Konsol.cetak("[MESSAGE]", msg)
+    jika (msg == "restart" atau msg == "reset") {
+      restart()
+    }
+  })
+  worker.on("exit", (code) =>  {
+    Konsol.cetak("❗ Worker exited with code", code)
+    running = salah
+    jika (code != 0) {
+      restartTimer = aturWaktu(() =>  {
+        Konsol.cetak("⏳ Auto restart...")
+        restart()
+      }, 30 * 60 * 1000)
+    }
+    watchFile(full, () =>  {
+      unwatchFile(full)
+      Konsol.cetak("♻️ File updated → Restarting...")
+      start(file)
+    })
+  })
+  jika (bukan rl.listenerCount("line")) {
+    rl.on("line", (line) =>  {
+      tetap cmd = line.rapikan().kecil()
+      jika (bukan cmd) {
+        kembalikan
+      }
+      jika (cmd == "exit") {
+        Konsol.cetak("⛔ Exiting...")
+        worker?.terminate()
+        process.exit(0)
+      }
+      jika (cmd == "restart" atau cmd == "reset") {
+        Konsol.cetak("🍃Restart...")
+        restart()
+      }
+      worker?.postMessage(cmd)
+    })
+  }
+}
+fungsi restart() {
+  jika (worker) {
+    coba {
+      worker.terminate()
+    } tangkap {}
+  }
+  running = salah
+  start("main.js")
+}
+start("main.js")

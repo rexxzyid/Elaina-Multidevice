@@ -1,0 +1,55 @@
+impor path dari "path"
+misal handler = asinkron (m, { conn }) =>  {
+  misal text = m.quoted ? m.quoted?.text : m?.text
+  jika (bukan text) {
+    lempar "Url?"
+  }
+  jika (bukan /^https?:\/\//i.uji(text)) {
+    text = text.cocok(/https?:\/\/\S+/i)?.[0]
+  }
+  tetap controller = baru AbortController()
+  tetap timeout = aturWaktu(() => controller.abort(), 15000)
+  misal res
+  coba {
+    res = tunggu fetch(text, { redirect: "follow", headers: { "user-agent": "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Mobile Safari/537.36" }, signal: controller.signal })
+    hapusWaktu(timeout)
+  } tangkap (e) {
+    hapusWaktu(timeout)
+    kembalikan m.reply("Gagal fetch URL: " + e.message)
+  }
+  jika (bukan res.ok) {
+    lempar `HTTP Error ${res.status}`
+  }
+  tetap type = (res.headers.get("content-type") atau "").pisah(";")[0]
+  tetap size = Angka(res.headers.get("content-length") atau 0)
+  jika (size > 200 * 1024 * 1024) {
+    lempar "File terlalu besar (200MB)"
+  }
+  tetap finalUrl = res.url atau text
+  tetap urlObj = baru URL(finalUrl)
+  tetap filename = path.basename(urlObj.pathname) atau "file"
+  tetap buffer = Buffer.from(tunggu res.arrayBuffer())
+  jika (type.diawali("image/")) {
+    kembalikan conn.sendFile(m.chat, buffer, filename, text, m)
+  }
+  jika (type == "application/json") {
+    coba {
+      tetap json = JSON.urai(buffer.toString())
+      tetap pretty = JSON.teks(json, kosong, 2)
+      tunggu m.reply(pretty.iris(0, 65536))
+      kembalikan conn.sendMessage(m.chat, { document: Buffer.from(pretty), fileName: "file.json", mimetype: "application/json" }, { quoted: m })
+    } tangkap {
+      kembalikan m.reply("JSON rusak")
+    }
+  }
+  jika (type.diawali("text/")) {
+    tetap txt = buffer.toString("utf8")
+    tunggu m.reply(txt.iris(0, 65536))
+    kembalikan conn.sendFile(m.chat, Buffer.from(txt), type == "text/html" ? "file.html" : "file.txt", kosong, m)
+  }
+  kembalikan conn.sendFile(m.chat, buffer, filename, text, m)
+}
+handler.help = ["fetch <url>", "get <url>"]
+handler.tags = ["internet"]
+handler.command = /^(fetch|get)$/i
+ekspor bawaan handler

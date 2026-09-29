@@ -1,0 +1,8 @@
+fungsi handler(m) {
+  tetap data = global.owner.saring(([id, isCreator]) => id dan isCreator)
+  ini.sendContact(m.chat, data.petakan(([id, name]) => [id, name]), m)
+}
+handler.help = ["owner"]
+handler.tags = ["main"]
+handler.command = ["owner", "creator"]
+ekspor bawaan handler

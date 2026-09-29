@@ -1,0 +1,44 @@
+misal handler = asinkron (m) =>  {
+  coba {
+    tetap user = global.db.data.users[m.sender]
+    tetap randomAku = Matematika.bawah(Matematika.acak() * 101)
+    tetap randomKamu = Matematika.bawah(Matematika.acak() * 81)
+    tetap now = Tanggal.now()
+    tetap cooldown = 604800000
+    tetap diff = now - user.lastbansos
+    tetap timers = clockString(cooldown - diff)
+    jika (diff < cooldown) {
+      kembalikan m.reply(`Kamu Sudah Melakukan Korupsi Keuangan!
+Tunggu Selama:
+${timers}
+Agar Tidak Tertangkap Oleh KPK`)
+    }
+    jika (randomAku > randomKamu) {
+      m.reply("Kamu Tertangkap Setelah Kamu Korupsi Dana Rakyat,\nDan Kamu Harus Membayar Denda Sebesar *Rp. 5.000.000* Agar Bisa Terbebas Dari Penjara")
+      user.money -= 5000000
+      user.lastbansos = now
+    } lainnya jika (randomAku < randomKamu) {
+      user.money += 2000000
+      m.reply("Kamu Berhasil Korupsi Dana Rakyat!\nKamu Mendapatkan *Rp. 2.000.000*")
+      user.lastbansos = now
+    } lainnya {
+      m.reply("Kamu Tidak Berhasil Melakukan Korupsi,\nTetapi Kamu Tidak Masuk Penjara Karena Kamu *Menyuap Pihak Tertentu*.")
+      user.lastbansos = now
+    }
+  } tangkap (e) {
+    Konsol.galat(e)
+    m.reply("Error")
+  }
+}
+handler.help = ["korupsi"]
+handler.tags = ["rpg"]
+handler.command = /^(korupsi)$/i
+handler.group = benar
+ekspor bawaan handler
+fungsi clockString(ms) {
+  misal d = adalahNaN(ms) ? "--" : Matematika.bawah(ms / 86400000)
+  misal h = adalahNaN(ms) ? "--" : Matematika.bawah(ms / 3600000) % 24
+  misal m = adalahNaN(ms) ? "--" : Matematika.bawah(ms / 60000) % 60
+  misal s = adalahNaN(ms) ? "--" : Matematika.bawah(ms / 1000) % 60
+  kembalikan ["\n" + d, " *Hari*\n ", h, " *Jam*\n ", m, " *Menit*\n ", s, " *Detik* "].petakan((v) => v.toString().isiAwal(2, 0)).gabung("")
+}

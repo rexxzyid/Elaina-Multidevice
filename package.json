@@ -2,7 +2,7 @@
   "name": "Elaina-Multidevice",
   "version": "2.0.0",
   "description": "Lightweight WhatsApp Multi-Device bot built with Baileys.",
-  "main": "index.js",
+  "main": "index.wni",
   "type": "module",
   "config": {
     "omit": "dev"
@@ -12,9 +12,8 @@
     "plugins": "plugins"
   },
   "scripts": {
-    "start": "node index.js",
-    "format": "prettier --write .",
-    "lint": "eslint . --ext .js"
+    "start": "indo jalankan index.wni",
+    "periksa": "indo periksa index.wni"
   },
   "author": "RexxHayanasi",
   "homepage": "https://github.com/rexxzyid/Elaina-Multidevice#readme",

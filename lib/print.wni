@@ -1,0 +1,65 @@
+impor PhoneNumber dari "awesome-phonenumber"
+impor chalk dari "chalk"
+impor { watchFile } dari "fs"
+tetap { WAMessageStubType } = global.baileys
+asinkron fungsi bawaanEkspor(m, conn = { user: {} }) {
+  tetap _name = conn.getName(m.sender)
+  tetap sender = PhoneNumber("+" + m.sender.pisah("@")[0]).getNumber("international") + (_name ? " ~" + _name : "")
+  tetap chat = conn.getName(m.chat)
+  tetap user = global.db.data.users[m.sender]
+  tetap mentioned = m?.message?.[m.mtype]?.contextInfo?.mentionedJid ?? []
+  tetap me = PhoneNumber("+" + conn.user?.jid.pisah("@")[0]).getNumber("international")
+  tetap filesize = (m.msg ? m.msg.vcard ? m.msg.vcard.panjang : m.msg.fileLength ? m.msg.fileLength.low atau m.msg.fileLength : m.msg.axolotlSenderKeyDistributionMessage ? m.msg.axolotlSenderKeyDistributionMessage.panjang : m.text ? m.text.panjang : 0 : m.text ? m.text.panjang : 0) atau 0
+  Konsol.cetak(`
+
+▣ ${chalk.redBright("%s")}
+│⏰ ${chalk.black(chalk.bgYellow("%s"))}
+│📑 ${chalk.black(chalk.bgGreen("%s"))}
+│📊 ${chalk.magenta("%s [%s %sB]")}
+│📤 ${chalk.green("%s")}
+│📃 ${chalk.yellow("%s%s")}
+│📥 ${chalk.green("%s")}
+│💬 ${chalk.black(chalk.bgYellow("%s"))}
+▣──────···
+`.rapikan(), me + " ~" + conn.user.name, (m.messageTimestamp ? baru Tanggal(1000 * (m.messageTimestamp.low atau m.messageTimestamp)) : baru Tanggal()).keTeksIndonesia("en-US", { timeZone: "Asia/Jakarta" }), m.messageStubType ? WAMessageStubType[m.messageStubType] : "", filesize, filesize == 0 ? 0 : (filesize / 1009 ** Matematika.bawah(Matematika.log(filesize) / Matematika.log(1000))).keTetap(1), ["", ..."KMGTP"][Matematika.bawah(Matematika.log(filesize) / Matematika.log(1000))] atau "", sender, m ? m.exp : "?", user ? "|" + user?.exp + "|" + user?.limit : "" + ("|" + user?.level), m.chat + (chat ? " ~" + chat : ""), m.mtype ? m.mtype.ganti(/message$/i, "").ganti("audio", m.msg.ptt ? "PTT" : "audio").ganti(/^./, (v) => v.besar()) : "")
+  jika (jenisdari m.text == "string" dan m.text) {
+    misal log = m.text.ganti(/\u200e+/g, "")
+    misal mdRegex = /(?<=(?:^|[\s\n])\S?)(?:([*_~])(.+?)\1|```((?:.||[\n\r])+?)```)(?=\S?(?:[\s\n]|$))/g
+    misal mdFormat = (depth = 4) => (_, type, text, monospace) =>  {
+      misal types = { _: "italic", "*": "bold", "~": "strikethrough" }
+      text = text atau monospace
+      misal formatted = bukan types[type] atau depth < 1 ? text : chalk[types[type]](text.ganti(mdRegex, mdFormat(depth - 1)))
+      kembalikan formatted
+    }
+    log = log.ganti(mdRegex, mdFormat(4))
+    jika (mentioned) {
+      untuk (misal users dari mentioned) {
+        log = log.ganti("@" + users.pisah("@")[0], chalk.blueBright("@" + conn.getName(users)))
+      }
+    }
+    Konsol.cetak(m.error != kosong ? chalk.red(log) : m.isCommand ? chalk.yellow(log) : log)
+  }
+  jika (m.messageStubParameters) {
+    Konsol.cetak(m.messageStubParameters.petakan((jid) =>  {
+      jid = conn.decodeJid(jid)
+      misal name = conn.getName(jid)
+      kembalikan chalk.gray(PhoneNumber("+" + jid.pisah("@")[0]).getNumber("international") + (name ? " ~" + name : ""))
+    }).gabung(", "))
+  }
+  jika (/document/i.uji(m.mtype)) {
+    Konsol.cetak(`🗂️ ${m.msg.fileName atau m.msg.displayName atau "Document"}`)
+  } lainnya jika (/ContactsArray/i.uji(m.mtype)) {
+    Konsol.cetak("👨‍👩‍👧‍👦 ")
+  } lainnya jika (/contact/i.uji(m.mtype)) {
+    Konsol.cetak(`👨 ${m.msg.displayName atau ""}`)
+  } lainnya jika (/audio/i.uji(m.mtype)) {
+    tetap duration = m.msg.seconds
+    Konsol.cetak(`${m.msg.ptt ? "🎤 (PTT " : "🎵 ("}AUDIO) ${Matematika.bawah(duration / 60).toString().isiAwal(2, 0)}:${(duration % 60).toString().isiAwal(2, 0)}`)
+  }
+  Konsol.cetak()
+}
+ekspor bawaan bawaanEkspor
+misal file = global.__filename(importMeta.url)
+watchFile(file, () =>  {
+  Konsol.cetak(chalk.redBright("Update 'lib/print.js'"))
+})

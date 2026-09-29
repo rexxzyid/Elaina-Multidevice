@@ -1,0 +1,36 @@
+impor axios dari "axios"
+misal handler = asinkron (m, { usedPrefix, command, text }) =>  {
+  jika (bukan text) {
+    lempar `Usage: ${usedPrefix + command} Ela Vira Mortal`
+  }
+  m.react("🔁")
+  coba {
+    tetap res = tunggu yts(text)
+    tetap Audio = res.petakan((item) => ({ title: item.title, description: `🕛 ${item.duration} | 👤 ${item.channel}`, id: `${usedPrefix}yta ${item.url}` }))
+    tetap Video = res.petakan((item) => ({ title: item.title, description: `🕛 ${item.duration} | 👤 ${item.channel}`, id: `${usedPrefix}ytv ${item.url}` }))
+    conn.sendButton(m.chat, { text: `Hasil pencarian dari "${text}"`, footer: global.namebot, buttons: [{ name: "single_select", buttonParamsJson: JSON.teks({ title: "Audio (MP3)", sections: [{ title: "Daftar Audio", rows: Audio }] }) }, { name: "single_select", buttonParamsJson: JSON.teks({ title: "Video (MP4)", sections: [{ title: "Daftar Video", rows: Video }] }) }], messageParamsJson: JSON.teks({ bottom_sheet: { list_title: "YouTube Downloader", button_title: "Pilih Format", in_thread_buttons_limit: 1 } }) }, { quoted: m })
+  } tangkap (e) {
+    kembalikan m.reply(e.message)
+  }
+}
+handler.help = ["yts"]
+handler.tags = ["downloader"]
+handler.command = /^(yts|youtubesearch)$/i
+handler.limit = benar
+ekspor bawaan handler
+asinkron fungsi yts(query) {
+  jika (bukan query) {
+    lempar baru Error("Query is required.")
+  }
+  tetap baseURL = "https://www.devers-en-geste.fr/search"
+  coba {
+    tetap response = tunggu axios.get(baseURL, { params: { q: query }, headers: { Accept: "application/json, text/javascript, */*; q=0.01", "X-Requested-With": "XMLHttpRequest", "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36", Referer: "https://www.devers-en-geste.fr/" } })
+    tetap data = response.data
+    jika (bukan data.items) {
+      kembalikan []
+    }
+    kembalikan data.items.petakan((item) => ({ title: item.title, url: `https://www.youtube.com/watch?v=${item.id}`, videoId: item.id, channel: item.channelTitle, duration: item.duration, size: item.size, thumbnail: `https://i.ytimg.com/vi/${item.id}/hqdefault.jpg` }))
+  } tangkap (error) {
+    lempar baru Error(error.message)
+  }
+}

@@ -1,0 +1,21 @@
+misal handler = asinkron (m) =>  {
+  jika (bukan m.quoted) {
+    kembalikan m.reply("Reply gambar/video yang ingin Anda lihat")
+  }
+  jika (m.quoted.mediaMessage[m.quoted?.mediaType]?.viewOnce) {
+    misal msg = tunggu m.getQuotedObj()?.message
+    misal type = Objek.kunci(msg)[0]
+    misal media = (tunggu m.quoted?.download()) atau (tunggu m.getQuotedObj().download())
+    jika (bukan media) {
+      kembalikan m.reply("Media gagal di Eksekusi!")
+    }
+    tunggu conn.sendFile(m.chat, media, "error.mp4", msg[type]?.caption atau "", m)
+  } lainnya {
+    m.reply("Ini bukan pesan view-once.")
+  }
+}
+handler.help = ["rvo"]
+handler.tags = ["tools"]
+handler.command = /^rvo|read/i
+handler.register = benar
+ekspor bawaan handler

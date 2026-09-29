@@ -1,0 +1,75 @@
+tetap timeout = 1800000
+misal handler = asinkron (m, { usedPrefix, conn }) =>  {
+  tetap user = global.db.data.users[m.sender]
+  tetap { bibitapel, bibitanggur, bibitmangga, bibitpisang, bibitjeruk } = user
+  jika (bukan bibitapel atau bukan bibitanggur atau bukan bibitmangga atau bukan bibitpisang atau bukan bibitjeruk) {
+    kembalikan m.reply(`*Pastikan Kamu Memiliki Semua Bibit*
+• Bibit Apel
+• Bibit Mangga
+• Bibit Jeruk
+• Bibit Pisang
+• Bibit Anggur
+
+Contoh:
+${usedPrefix}shop buy bibitmangga 500`)
+  }
+  tetap now = Tanggal.now()
+  tetap diff = user.lastberkebon + timeout
+  jika (now < diff) {
+    kembalikan m.reply(`
+Anda sudah menanam sebelumnya.
+Tunggu ${msToTime(diff - now)} lagi.`)
+  }
+  jika (bibitmangga < 500) {
+    kembalikan m.reply(`Bibit Mangga kamu kurang dari *500*`)
+  }
+  jika (bibitapel < 500) {
+    kembalikan m.reply(`Bibit Apel kamu kurang dari *500*`)
+  }
+  jika (bibitpisang < 500) {
+    kembalikan m.reply(`Bibit Pisang kamu kurang dari *500*`)
+  }
+  jika (bibitjeruk < 500) {
+    kembalikan m.reply(`Bibit Jeruk kamu kurang dari *500*`)
+  }
+  jika (bibitanggur < 500) {
+    kembalikan m.reply(`Bibit Anggur kamu kurang dari *500*`)
+  }
+  tetap [pisangpoin, anggurpoin, manggapoin, jerukpoin, apelpoin] = Larik.from({ length: 5 }, () => Matematika.bawah(Matematika.acak() * 500))
+  user.pisang += pisangpoin
+  user.anggur += anggurpoin
+  user.mangga += manggapoin
+  user.jeruk += jerukpoin
+  user.apel += apelpoin
+  user.bibitapel -= 500
+  user.bibitanggur -= 500
+  user.bibitmangga -= 500
+  user.bibitpisang -= 500
+  user.bibitjeruk -= 500
+  user.tiketcoin += 1
+  user.lastberkebon = now
+  m.reply(`
+Selamat ${conn.getName(m.sender)}!
+Kamu mendapatkan:
++${pisangpoin} Pisang
++${manggapoin} Mangga
++${anggurpoin} Anggur
++${jerukpoin} Jeruk
++${apelpoin} Apel
+
+${usedPrefix}listbuah Untuk melihat listnya.`)
+  aturWaktu(() =>  {
+    m.reply(`Waktunya berkebun lagi kak 🌱`)
+  }, timeout)
+}
+handler.help = ["berkebun"]
+handler.tags = ["rpg"]
+handler.command = /^berkebun$/i
+handler.group = benar
+ekspor bawaan handler
+fungsi msToTime(ms) {
+  misal s = Matematika.bawah((ms / 1000) % 60)
+  misal m = Matematika.bawah((ms / (1000 * 60)) % 60)
+  misal h = Matematika.bawah((ms / (1000 * 60 * 60)) % 24)
+  kembalikan `${h} Jam ${m} Menit ${s} Detik`
+}

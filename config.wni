@@ -1,0 +1,31 @@
+impor { watchFile, unwatchFile } dari "fs"
+impor chalk dari "chalk"
+impor { fileURLToPath } dari "url"
+global.pairingNumber = 62812345678
+global.owner = [["62812345678", "RexxHayanasi", benar]]
+global.namebot = "Elaina-Multidevice"
+global.author = "RexxHayanasi"
+global.source = "https://chat.whatsapp.com/CLARrmIDTFVDNk5sVVSyLo?s=cl&p=a&mlu=4"
+global.repo = "https://github.com/rexxzyid/Elaina-Multidevice"
+global.wait = "Loading..."
+global.eror = "Terjadi Kesalahan..."
+global.pakasir = { slug: "", apikey: "", expired: 30 }
+global.stickpack = "Created By"
+global.stickauth = namebot
+global.multiplier = 38
+global.rpg = { emoticon(string) {
+  string = string.kecil()
+  misal emot = { level: "📊", limit: "🎫", health: "❤️", stamina: "🔋", exp: "✨", money: "💹", bank: "🏦", potion: "🥤", diamond: "💎", common: "📦", uncommon: "🛍️", mythic: "🎁", legendary: "🗃️", superior: "💼", pet: "🔖", trash: "🗑", armor: "🥼", sword: "⚔️", pickaxe: "⛏️", fishingrod: "🎣", wood: "🪵", rock: "🪨", string: "🕸️", horse: "🐴", cat: "🐱", dog: "🐶", fox: "🦊", petFood: "🍖", iron: "⛓️", gold: "🪙", emerald: "❇️", upgrader: "🧰" }
+  misal results = Objek.kunci(emot).petakan((v) => [v, baru RegEx(v, "gi")]).saring((v) => v[1].uji(string))
+  jika (bukan results.panjang) {
+    kembalikan ""
+  } lainnya {
+    kembalikan emot[results[0][0]]
+  }
+} }
+misal file = fileURLToPath(importMeta.url)
+watchFile(file, () =>  {
+  unwatchFile(file)
+  Konsol.cetak(chalk.redBright("Update 'config.js'"))
+  imporDinamis(`${file}?update=${Tanggal.now()}`)
+})

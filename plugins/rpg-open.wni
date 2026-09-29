@@ -1,0 +1,66 @@
+tetap rewards = { common: { money: 101, exp: 201, trash: 11, potion: [0, 1, 0, 1, 0, 0, 0, 0, 0], common: [0, 1, 0, 1, 0, 0, 0, 0, 0, 0], uncommon: [0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] }, uncommon: { money: 201, exp: 401, trash: 31, potion: [0, 1, 0, 0, 0, 0, 0], diamond: [0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], common: [0, 1, 0, 0, 0, 0, 0, 0], uncommon: [0, 1, 0, 0, 0, 0, 0, 0, 0, 0], mythic: [0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], wood: [0, 1, 0, 0, 0, 0], rock: [0, 1, 0, 0, 0, 0], string: [0, 1, 0, 0, 0, 0] }, mythic: { money: 301, exp: 551, trash: 61, potion: [0, 1, 0, 0, 0, 0], emerald: [0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], diamond: [0, 1, 0, 0, 0, 0, 0, 0, 0, 0], gold: [0, 1, 0, 0, 0, 0, 0, 0, 0], iron: [0, 1, 0, 0, 0, 0, 0, 0], common: [0, 1, 0, 0, 0, 0], uncommon: [0, 1, 0, 0, 0, 0, 0, 0], mythic: [0, 1, 0, 0, 0, 0, 0, 0, 0, 0], legendary: [0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], pet: [0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0], wood: [0, 1, 0, 0, 0], rock: [0, 1, 0, 0, 0], string: [0, 1, 0, 0, 0] }, legendary: { money: 401, exp: 601, trash: 101, potion: [0, 1, 0, 0, 0], emerald: [0, 1, 0, 0, 0, 0, 0, 0, 0, 0], diamond: [0, 1, 0, 0, 0, 0, 0, 0, 0], gold: [0, 1, 0, 0, 0, 0, 0, 0], iron: [0, 1, 0, 0, 0, 0, 0], common: [0, 1, 0, 0], uncommon: [0, 1, 0, 0, 0, 0], mythic: [0, 1, 0, 0, 0, 0, 0, 0, 0], legendary: [0, 1, 0, 0, 0, 0, 0, 0, 0, 0], pet: [0, 1, 0, 0, 0, 0, 0, 0, 0, 0], wood: [0, 1, 0, 0], rock: [0, 1, 0, 0], string: [0, 1, 0, 0] } }
+misal handler = asinkron (m, { command, args, usedPrefix }) =>  {
+  misal user = global.db.data.users[m.sender]
+  misal listCrate = Objek.dariEntri(Objek.entri(rewards).saring(([v]) => v dan v dalam user))
+  misal info = `
+Pake Format *${usedPrefix}${command} [crate] [count]*
+Contoh: *${usedPrefix}${command} common 10*
+
+Crate List: 
+${Objek.kunci(listCrate).petakan((v) => `
+${rpg.emoticon(v)}${v}
+`.rapikan()).gabung("\n")}
+`.rapikan()
+  misal type = (args[0] atau "").kecil()
+  misal count = Matematika.bawah(isNumber(args[1]) ? Matematika.min(Matematika.maks(uraiBulat(args[1]), 1), Angka.MAX_SAFE_INTEGER) : 1) * 1
+  jika (bukan (type dalam listCrate)) {
+    kembalikan m.reply(info)
+  }
+  jika (user[type] < count) {
+    kembalikan m.reply(`
+Crates* Nggak Ada, Kamu Hanya Punya ${user[type]} *${type} Crate*
+Ketik *${usedPrefix}buy ${type} ${count - user[type]}* Untuk Membeli
+`.rapikan())
+  }
+  misal crateReward = {}
+  untuk (misal i = 0; i < count; i++) {
+    untuk (misal [reward, value] dari Objek.entri(listCrate[type])) {
+      jika (reward dalam user) {
+        tetap total = value.getRandom()
+        jika (total) {
+          user[reward] += total * 1
+          crateReward[reward] = (crateReward[reward] atau 0) + total * 1
+        }
+      }
+    }
+  }
+  user[type] -= count * 1
+  m.reply(`
+Kamu Membuka Sebanyak *${count}* ${type} Crate Dan Mendapatkan
+${Objek.kunci(crateReward).saring((v) => v dan crateReward[v] dan bukan /legendary|pet|mythic|diamond|emerald/i.uji(v)).petakan((reward) => `
+*${reward}:* ${crateReward[reward]}
+`.rapikan()).gabung("\n")}
+`.rapikan())
+  misal diamond = crateReward.diamond, mythic = crateReward.mythic, pet = crateReward.pet, legendary = crateReward.legendary, emerald = crateReward.emerald
+  jika (mythic atau diamond) {
+    m.reply(`
+Selamat Kamu Mendapatkan ${diamond ? `*${diamond} Diamond*` : ""}${diamond dan mythic ? "Dan " : ""}${mythic ? `*${mythic}* Mythic` : ""}
+`.rapikan())
+  }
+  jika (pet atau legendary atau emerald) {
+    m.reply(`
+Selamat Kamu Mendapatkan ${pet ? `*${pet}* Pet` : ""}${pet dan legendary dan emerald ? ", " : (pet dan legendary) atau (legendary dan emerald) atau (emerald dan pet) ? "Dan " : ""}${legendary ? `*${legendary}* Legendary` : ""}${pet dan legendary dan emerald ? "Dan " : ""}${emerald ? `*${emerald}* Emerald` : ""}
+`.rapikan())
+  }
+}
+handler.help = ["open"]
+handler.tags = ["rpg"]
+handler.command = /^(open|buka|gacha)$/i
+ekspor bawaan handler
+fungsi isNumber(number) {
+  jika (bukan number) {
+    kembalikan number
+  }
+  number = uraiBulat(number)
+  kembalikan jenisdari number == "number" dan bukan adalahNaN(number)
+}

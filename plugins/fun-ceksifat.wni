@@ -1,0 +1,29 @@
+misal handler = asinkron (m, { text }) =>  {
+  jika (bukan text) {
+    lempar "Masukkan namamu!"
+  }
+  m.reply(`
+╭━━━°「 *Sifat ${text}* 」°━━━
+┃
+┃• Nama          : ${text}
+┃• Ahlak Baik    : ${randomPersen()}
+┃• Ahlak Buruk   : ${randomPersen()}
+┃• Orang yang    : ${pickRandom(["Baik Hati", "Sombong", "Pelit", "Dermawan", "Rendah Hati", "Rendah Diri", "Pemalu", "Penakut", "Pengusil", "Cengeng"])}
+┃• Selalu        : ${pickRandom(["Rajin", "Malas", "Membantu", "Ngegosip", "Jail", "Gak jelas", "Shopping", "Chattan sama Doi", "Chattan di WA karena Jomblo", "Sedih", "Kesepian", "Bahagia", "Ngocok tiap hari"])}
+┃• Kecerdasan    : ${randomPersen()}
+┃• Kenakalan     : ${randomPersen()}
+┃• Keberanian    : ${randomPersen()}
+┃• Ketakutan     : ${randomPersen()}
+╰━━━━━━━━━━━━━━━
+`.rapikan())
+}
+handler.help = ["ceksifat"]
+handler.tags = ["fun"]
+handler.command = /^ceksifat$/i
+ekspor bawaan handler
+fungsi pickRandom(list) {
+  kembalikan list[Matematika.bawah(Matematika.acak() * list.panjang)]
+}
+fungsi randomPersen() {
+  kembalikan (Matematika.acak() * 100).keTetap(1) + "%"
+}

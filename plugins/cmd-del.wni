@@ -1,0 +1,19 @@
+misal handler = asinkron (m) =>  {
+  misal hash
+  jika (m.quoted dan m.quoted.fileSha256) {
+    hash = m.quoted.fileSha256
+  }
+  jika (bukan hash) {
+    lempar `Tidak ada hash`
+  }
+  misal sticker = global.db.data.sticker
+  jika (sticker[hash] dan sticker[hash].locked) {
+    lempar "Kamu tidak memiliki izin untuk menghapus perintah stiker ini"
+  }
+  hapus sticker[hash]
+  m.reply(`Berhasil!`)
+}
+handler.help = ["delcmd"]
+handler.tags = ["database"]
+handler.command = ["delcmd"]
+ekspor bawaan handler

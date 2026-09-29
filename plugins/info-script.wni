@@ -1,0 +1,54 @@
+misal handler = asinkron (m) =>  {
+  coba {
+    tetap slug = global.repo.ganti(/^https?:\/\/github\.com\//, "").ganti(/\.git$/, "")
+    tetap raw = tunggu fetch(`https://api.github.com/repos/${slug}`)
+    jika (bukan raw.ok) {
+      kembalikan m.reply("Gagal Mendapatkan Info Repository")
+    }
+    tetap res = tunggu raw.json()
+    m.reply(`*Informasi Script*
+
+✨ *Nama:* ${res.name}
+👤 *Pemilik:* ${res.owner.login ?? "-"}
+⭐ *Star:* ${res.stargazers_count ?? 0}
+🍴 *Forks:* ${res.forks ?? 0}
+📅 *Dibuat sejak:* ${toTime(res.created_at)}
+♻️ *Terakhir update:* ${toTime(res.updated_at)}
+🚀 *Terakhir publish:* ${toTime(res.pushed_at)}
+🔗 *Link:* ${res.html_url}
+`)
+  } tangkap (err) {
+    Konsol.galat(err)
+    kembalikan m.reply("Coba lagi nanti.")
+  }
+}
+handler.help = ["script"]
+handler.tags = ["info"]
+handler.command = ["sc", "script", "esce"]
+ekspor bawaan handler
+fungsi toTime(time) {
+  tetap ts = baru Tanggal(time).getTime()
+  tetap now = Tanggal.now()
+  tetap diff = Matematika.bawah((now - ts) / 1000)
+  tetap m = Matematika.bawah(diff / 60)
+  tetap h = Matematika.bawah(diff / 3600)
+  tetap d = Matematika.bawah(diff / 86400)
+  tetap mn = Matematika.bawah(diff / 2592000)
+  tetap y = Matematika.bawah(diff / 31536000)
+  jika (diff < 60) {
+    kembalikan `${diff} detik yang lalu`
+  }
+  jika (m < 60) {
+    kembalikan `${m} menit yang lalu`
+  }
+  jika (h < 24) {
+    kembalikan `${h} jam yang lalu`
+  }
+  jika (d < 30) {
+    kembalikan `${d} hari yang lalu`
+  }
+  jika (mn < 12) {
+    kembalikan `${mn} bulan yang lalu`
+  }
+  kembalikan `${y} tahun yang lalu`
+}

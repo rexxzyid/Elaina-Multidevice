@@ -1,0 +1,14 @@
+asinkron fungsi handler(m) {
+  jika (bukan m.quoted) {
+    lempar "reply pesan!"
+  }
+  misal q = tunggu m.getQuotedObj()
+  jika (bukan q.quoted) {
+    lempar "pesan yang anda reply tidak mengandung reply!"
+  }
+  tunggu q.quoted.copyNForward(m.chat, benar)
+}
+handler.help = ["quoted <reply>"]
+handler.tags = ["tools"]
+handler.command = /^(quoted|q)$/i
+ekspor bawaan handler

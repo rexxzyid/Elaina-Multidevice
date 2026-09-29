@@ -1,0 +1,22 @@
+impor { canLevelUp, xpRange } dari "../lib/levelling.wni"
+misal handler = asinkron (m) =>  {
+  tetap name = conn.getName(m.sender)
+  tetap user = global.db.data.users[m.sender]
+  tetap { min, xp, max } = xpRange(user.level, global.multiplier)
+  jika (bukan canLevelUp(user.level, user.exp, global.multiplier)) {
+    tunggu conn.reply(m.chat, `Level ${name} ${user.level} (${user.exp - min}/${xp})
+Kurang ${max - user.exp} EXP lagi!`.rapikan(), m)
+  }
+  misal before = user.level * 1
+  selama (canLevelUp(user.level, user.exp, global.multiplier)) {
+    user.level++
+  }
+  jika (before != user.level) {
+    tunggu conn.reply(m.chat, `${name} Level Up!
+_${before}_ -> ${user.level}`.rapikan(), m)
+  }
+}
+handler.help = ["levelup"]
+handler.tags = ["xp"]
+handler.command = /^levelup$/i
+ekspor bawaan handler

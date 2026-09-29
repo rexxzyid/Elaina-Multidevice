@@ -1,0 +1,70 @@
+misal buatall = 1
+misal handler = asinkron (m, { conn, args, command, usedPrefix }) =>  {
+  conn.casino = conn.casino ? conn.casino : {}
+  jika (m.chat dalam conn.casino) {
+    kembalikan m.reply("Masih Ada Yang Melakukan Casino Disini, Tunggu Sampai Selesai!!")
+  } lainnya {
+    conn.casino[m.chat] = benar
+  }
+  jika (args.panjang < 1) {
+    kembalikan conn.reply(m.chat, usedPrefix + command + " <jumlah>\n" + usedPrefix + command + " 1000", m)
+  }
+  coba {
+    misal randomaku = `${Matematika.bawah(Matematika.acak() * 101)}`.rapikan()
+    misal randomkamu = `${Matematika.bawah(Matematika.acak() * 81)}`.rapikan()
+    misal Aku = randomaku * 1
+    misal Kamu = randomkamu * 1
+    misal count = args[0]
+    count = count ? (/all/i.uji(count) ? Matematika.bawah(global.db.data.users[m.sender].exp / buatall) : uraiBulat(count)) : args[0] ? uraiBulat(args[0]) : 1
+    count = Matematika.maks(1, count)
+    jika (global.db.data.users[m.sender].exp >= count * 1) {
+      global.db.data.users[m.sender].exp -= count * 1
+      jika (Aku > Kamu) {
+        misal caption = `*C A S I N O*
+  
+*@${m.sender.pisah("@")[0]}*
+┗┅⭑ ${Kamu} Point
+*@${conn.user.jid.pisah("@")[0]}*
+┗┅⭑ ${Aku} Point
+
+*Kalah*
+Kamu Kehilangan ${count} Uang`.rapikan()
+        conn.reply(m.chat, caption, m, { mentions: conn.parseMention(caption) })
+      } lainnya jika (Aku < Kamu) {
+        misal caption = `*C A S I N O*
+    
+*@${m.sender.pisah("@")[0]}*
+┗┅⭑ ${Kamu} Point
+*@${conn.user.jid.pisah("@")[0]}*
+┗┅⭑ ${Aku} Point
+
+*Menang*
+Kamu Mendapatkan ${count * 2} Uang`.rapikan()
+        conn.reply(m.chat, caption, m, { mentions: conn.parseMention(caption) })
+      } lainnya {
+        misal caption = `*C A S I N O*
+ 
+*@${m.sender.pisah("@")[0]}*
+┗┅⭑ ${Kamu} Point
+*@${conn.user.jid.pisah("@")[0]}*
+┗┅⭑ ${Aku} Point
+
+*Seri*
+Kamu Mendapatkan ${count * 1}`.rapikan()
+        conn.reply(m.chat, caption, m, { mentions: conn.parseMention(caption) })
+      }
+    } lainnya {
+      conn.reply(m.chat, `Uang Kamu Tidak Mencukupi Untuk Casino Silahkan *.claim* Terlebih Dahulu!`.rapikan(), m)
+    }
+  } tangkap (e) {
+    Konsol.cetak(e)
+    m.reply("Error!!")
+  } akhirnya {
+    hapus conn.casino[m.chat]
+  }
+}
+handler.help = ["casino"]
+handler.tags = ["rpg"]
+handler.command = /^(casino|csn)$/i
+handler.group = benar
+ekspor bawaan handler

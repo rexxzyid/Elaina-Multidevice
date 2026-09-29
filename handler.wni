@@ -1,0 +1,340 @@
+impor { smsg } dari "./lib/simple.wni"
+impor { format } dari "util"
+impor { fileURLToPath } dari "url"
+impor path dari "path"
+impor { unwatchFile, watchFile } dari "fs"
+impor chalk dari "chalk"
+ekspor asinkron fungsi handler(chatUpdate) {
+  jika (bukan chatUpdate) {
+    kembalikan
+  }
+  ini.pushMessage(chatUpdate.messages).catch(Konsol.error)
+  misal m = chatUpdate.messages[chatUpdate.messages.panjang - 1]
+  jika (bukan m) {
+    kembalikan
+  }
+  jika (global.db.data == kosong) {
+    tunggu global.loadDatabase()
+  }
+  coba {
+    m = smsg(ini, m) atau m
+    jika (bukan m) {
+      kembalikan
+    }
+    m.exp = 0
+    m.limit = salah
+    jika (m.sender.diakhiri("@broadcast") atau m.sender.diakhiri("@newsletter")) {
+      kembalikan
+    }
+    tunggu (tunggu imporDinamis(`./lib/database.js?v=${Tanggal.now()}`)).default(m, ini)
+    jika (jenisdari m.text != "string") {
+      m.text = ""
+    }
+    tetap isROwner = [conn.decodeJid(global.conn.user.id), ...global.owner.petakan(([number]) => number)].petakan((v) => v.ganti(/[^0-9]/g, "") + "@s.whatsapp.net").berisi(m.sender)
+    tetap isOwner = isROwner atau m.fromMe
+    tetap isPrems = isROwner atau db.data.users[m.sender]?.premiumTime > 0
+    jika (global.db.data.settings[ini.user.jid].gconly dan bukan m.isGroup dan bukan isOwner dan bukan isPrems) {
+      kembalikan
+    }
+    jika (bukan global.db.data.settings[ini.user.jid].public dan bukan isOwner dan bukan m.fromMe) {
+      kembalikan
+    }
+    jika (m.isBaileys) {
+      kembalikan
+    }
+    m.exp += Matematika.atas(Matematika.acak() * 10)
+    misal usedPrefix
+    misal _user = global.db.data dan global.db.data.users dan global.db.data.users[m.sender]
+    tetap groupMetadata = (m.isGroup ? (conn.chats[m.chat] atau {}).metadata atau (tunggu ini.groupMetadata(m.chat).catch((_) => kosong)) : {}) atau {}
+    tetap participants = (m.isGroup ? groupMetadata.participants : []) atau []
+    tetap user = (m.isGroup ? participants.cari((u) => conn.getJid(u.id) == m.sender) : {}) atau {}
+    tetap bot = (m.isGroup ? participants.cari((u) => conn.getJid(u.id) == ini.user.jid) : {}) atau {}
+    tetap isRAdmin = user?.admin == "superadmin" atau salah
+    tetap isAdmin = isRAdmin atau user?.admin == "admin" atau salah
+    tetap isBotAdmin = bot?.admin atau salah
+    tetap ___dirname = path.gabung(path.dirname(fileURLToPath(importMeta.url)), "./plugins")
+    untuk (misal name dalam global.plugins) {
+      misal plugin = global.plugins[name]
+      jika (bukan plugin) {
+        lanjut
+      }
+      jika (plugin.disabled) {
+        lanjut
+      }
+      tetap __filename = path.gabung(___dirname, name)
+      jika (jenisdari plugin.all == "function") {
+        coba {
+          tunggu plugin.all.call(ini, m, { chatUpdate, __dirname: ___dirname, __filename })
+        } tangkap (e) {
+          Konsol.galat(e)
+          untuk (misal [jid] dari global.owner.saring(([number, _, isDeveloper]) => isDeveloper dan number)) {
+            misal data = (tunggu conn.onWhatsApp(jid))[0] atau {}
+            jika (data.exists) {
+              m.reply(`*Plugin:* ${name}
+*Sender:* ${m.sender}
+*Chat:* ${m.chat}
+*Command:* ${m.text}
+
+\`\`\`${format(e)}\`\`\``.rapikan(), data.jid)
+            }
+          }
+        }
+      }
+      jika (plugin.tags dan plugin.tags.berisi("admin")) {
+        lanjut
+      }
+      tetap str2Regex = (str) => str.ganti(/[|\\{}()[\]^$+*?.]/g, "\\$&")
+      misal _prefix = plugin.customPrefix ? plugin.customPrefix : conn.prefix ? conn.prefix : global.prefix
+      misal match = (_prefix contohdari RegEx ? [[_prefix.jalankan(m.text), _prefix]] : Larik.isArray(_prefix) ? _prefix.petakan((p) =>  {
+        misal re = p contohdari RegEx ? p : baru RegEx(str2Regex(p))
+        kembalikan [re.jalankan(m.text), re]
+      }) : jenisdari _prefix == "string" ? [[baru RegEx(str2Regex(_prefix)).jalankan(m.text), baru RegEx(str2Regex(_prefix))]] : [[[], baru RegEx()]]).cari((p) => p[1])
+      jika (jenisdari plugin.before == "function") {
+        jika (tunggu plugin.before.call(ini, m, { match, conn: ini, participants, groupMetadata, user, bot, isROwner, isOwner, isRAdmin, isAdmin, isBotAdmin, isPrems, chatUpdate, __dirname: ___dirname, __filename })) {
+          lanjut
+        }
+      }
+      jika (jenisdari plugin != "function") {
+        lanjut
+      }
+      jika ((usedPrefix = (match[0] atau "")[0])) {
+        misal noPrefix = m.text.ganti(usedPrefix, "")
+        misal [command, ...args] = noPrefix.rapikan().split(" ").saring((v) => v)
+        args = args atau []
+        misal _args = noPrefix.rapikan().split(" ").iris(1)
+        misal text = _args.join(" ")
+        command = (command atau "").kecil()
+        misal fail = plugin.fail atau global.dfail
+        misal isAccept = plugin.command contohdari RegEx ? plugin.command.uji(command) : Larik.isArray(plugin.command) ? plugin.command.beberapa((cmd) => cmd contohdari RegEx ? cmd.uji(command) : cmd == command) : jenisdari plugin.command == "string" ? plugin.command == command : salah
+        jika (bukan isAccept) {
+          lanjut
+        }
+        m.plugin = name
+        jika (bukan isOwner dan (m.chat dalam global.db.data.chats atau m.sender dalam global.db.data.users)) {
+          misal chat = global.db.data.chats[m.chat]
+          jika (name != "tools-delete.js" dan chat?.isBanned) {
+            kembalikan
+          }
+        }
+        jika (plugin.rowner dan plugin.owner dan bukan (isROwner atau isOwner)) {
+          fail("owner", m, ini)
+          lanjut
+        }
+        jika (plugin.rowner dan bukan isROwner) {
+          fail("rowner", m, ini)
+          lanjut
+        }
+        jika (plugin.owner dan bukan isOwner) {
+          fail("owner", m, ini)
+          lanjut
+        }
+        jika (plugin.premium dan bukan isPrems) {
+          fail("premium", m, ini)
+          lanjut
+        }
+        jika (plugin.group dan bukan m.isGroup) {
+          fail("group", m, ini)
+          lanjut
+        } lainnya jika (plugin.botAdmin dan bukan isBotAdmin) {
+          fail("botAdmin", m, ini)
+          lanjut
+        } lainnya jika (plugin.admin dan bukan isAdmin) {
+          fail("admin", m, ini)
+          lanjut
+        }
+        jika (plugin.private dan m.isGroup) {
+          fail("private", m, ini)
+          lanjut
+        }
+        jika (plugin.register == benar dan _user.registered == salah) {
+          fail("unreg", m, ini)
+          lanjut
+        }
+        m.isCommand = benar
+        misal xp = "exp" dalam plugin ? uraiBulat(plugin.exp) : 17
+        jika (xp > 200) {
+          m.reply("Ngecit -_-")
+        } lainnya {
+          m.exp += xp
+        }
+        jika (bukan isPrems dan plugin.limit dan global.db.data.users[m.sender].limit < plugin.limit * 1) {
+          ini.reply(m.chat, `[❗] Limit anda habis, silahkan beli melalui *${usedPrefix}buy limit*`, m)
+          lanjut
+        }
+        jika (plugin.level > _user.level) {
+          ini.reply(m.chat, `[💬] Diperlukan level ${plugin.level} untuk menggunakan perintah ini
+*Level mu:* ${_user.level} 📊`, m)
+          lanjut
+        }
+        misal extra = { match, usedPrefix, noPrefix, _args, args, command, text, conn: ini, participants, groupMetadata, user, bot, isROwner, isOwner, isRAdmin, isAdmin, isBotAdmin, isPrems, chatUpdate, __dirname: ___dirname, __filename }
+        coba {
+          tunggu plugin.call(ini, m, extra)
+          jika (bukan isPrems) {
+            m.limit = m.limit atau plugin.limit atau salah
+          }
+        } tangkap (e) {
+          m.error = e
+          Konsol.galat(e)
+          jika (e) {
+            misal text = format(e)
+            jika (e.name) {
+              untuk (misal [jid] dari global.owner.saring(([number, _, isDeveloper]) => isDeveloper dan number)) {
+                misal data = (tunggu conn.onWhatsApp(jid))[0] atau {}
+                jika (data.exists) {
+                  m.reply(`*🗂️ Plugin:* ${m.plugin}
+*👤 Sender:* ${m.sender}
+*💬 Chat:* ${m.chat}
+*💻 Command:* ${usedPrefix}${command} ${args.gabung(" ")}
+📄 *Error Logs:*
+
+\`\`\`${text}\`\`\``.rapikan(), data.jid)
+                }
+              }
+            }
+            m.reply(text)
+          }
+        } akhirnya {
+          jika (jenisdari plugin.after == "function") {
+            coba {
+              tunggu plugin.after.call(ini, m, extra)
+            } tangkap (e) {
+              Konsol.galat(e)
+            }
+          }
+          jika (m.limit) {
+            m.reply(+m.limit + " Limit terpakai ✔️")
+          }
+        }
+        henti
+      }
+    }
+  } tangkap (e) {
+    Konsol.galat(e)
+  } akhirnya {
+    misal user, stats = global.db.data.stats
+    jika (m) {
+      jika (m.sender dan (user = global.db.data.users[m.sender])) {
+        user.exp += Angka(m.exp atau 0)
+        user.limit -= Angka(m.limit atau 0)
+      }
+      jika (m.plugin) {
+        tetap now = Tanggal.now()
+        stats[m.plugin] = { total: 0, success: 0, last: 0, lastSuccess: 0, ...stats[m.plugin] }
+        stats[m.plugin].total++
+        stats[m.plugin].last = now
+        jika (bukan m.error) {
+          stats[m.plugin].success++
+          stats[m.plugin].lastSuccess = now
+        }
+      }
+    }
+    coba {
+      tunggu (tunggu imporDinamis(`./lib/print.js`)).default(m, ini)
+    } tangkap (e) {
+      Konsol.cetak(m, m.quoted, e)
+    }
+    jika (global.db.data.settings[ini.user.jid]?.autoread) {
+      tunggu conn.readMessages([m.key])
+    }
+  }
+}
+ekspor asinkron fungsi participantsUpdate({ id, participants, action, simulate = salah }) {
+  jika (ini.isInit dan bukan simulate) {
+    kembalikan
+  }
+  jika (global.db.data == kosong) {
+    tunggu loadDatabase()
+  }
+  misal chat = global.db.data.chats[id] atau {}
+  misal text = ""
+  tetap groupMetadata = (conn.chats[id] atau {}).metadata atau (tunggu ini.groupMetadata(id))
+  pilih (action) {
+    kasus "add":
+    kasus "remove":
+      jika (chat.welcome) {
+        untuk (misal user dari participants) {
+          user = ini.getJid(user?.phoneNumber atau user.id)
+          tetap tamnel = tunggu ini.profilePictureUrl(user, "image", "buffer")
+          text = (action == "add" ? chat.sWelcome atau ini.welcome atau conn.welcome atau "Welcome, @user!" : chat.sBye atau ini.bye atau conn.bye atau "Bye, @user!").ganti("@user", `@${user.pisah("@")[0]}`).ganti("@subject", ini.getName(id)).ganti("@desc", groupMetadata.desc atau "")
+          ini.adReply(id, text, tamnel, kosong, { title: action == "add" ? "💌 WELCOME" : "🐾 BYE", description: action == "add" ? "YAELAH BEBAN GROUP NAMBAH 1 :(" : "BYE BEBAN! :)" })
+        }
+      }
+      henti
+    kasus "promote":
+    kasus "demote":
+      untuk (misal users dari participants) {
+        misal user = ini.getJid(users?.phoneNumber atau users.id)
+        text = (action == "promote" ? chat.sPromote atau ini.spromote atau conn.spromote atau "@user ```is now Admin```" : chat.sDemote atau ini.sdemote atau conn.sdemote atau "@user ```is no longer Admin```").ganti("@user", "@" + user.pisah("@")[0]).ganti("@subject", ini.getName(id)).ganti("@desc", groupMetadata.desc atau "")
+        jika (chat.detect) {
+          ini.sendMessage(id, { text, mentions: ini.parseMention(text) })
+        }
+      }
+      henti
+  }
+}
+ekspor asinkron fungsi groupsUpdate(groupsUpdate) {
+  untuk (tetap groupUpdate dari groupsUpdate) {
+    tetap id = groupUpdate.id
+    jika (bukan id) {
+      lanjut
+    }
+    misal chats = global.db.data.chats[id], text = ""
+    jika (bukan chats?.detect) {
+      lanjut
+    }
+    jika (groupUpdate.desc) {
+      text = (chats.sDesc atau ini.sDesc atau conn.sDesc atau "```Description has been changed to```\n@desc").ganti("@desc", groupUpdate.desc)
+    }
+    jika (groupUpdate.subject) {
+      text = (chats.sSubject atau ini.sSubject atau conn.sSubject atau "```Subject has been changed to```\n@subject").ganti("@subject", groupUpdate.subject)
+    }
+    jika (groupUpdate.icon) {
+      text = (chats.sIcon atau ini.sIcon atau conn.sIcon atau "```Icon has been changed to```").ganti("@icon", groupUpdate.icon)
+    }
+    jika (groupUpdate.revoke) {
+      text = (chats.sRevoke atau ini.sRevoke atau conn.sRevoke atau "```Group link has been changed to```\n@revoke").ganti("@revoke", groupUpdate.revoke)
+    }
+    jika (bukan text) {
+      lanjut
+    }
+    tunggu ini.sendMessage(id, { text, mentions: ini.parseMention(text) })
+  }
+}
+ekspor asinkron fungsi deleteUpdate(message) {
+  coba {
+    tetap { fromMe, id, participant } = message
+    jika (fromMe) {
+      kembalikan
+    }
+    misal msg = ini.serializeM(ini.loadMessage(id))
+    jika (bukan msg) {
+      kembalikan
+    }
+    misal chat = global.db.data.chats[msg.chat]
+    jika (bukan chat.delete) {
+      kembalikan
+    }
+    tunggu ini.reply(msg.chat, `
+Terdeteksi @${participant.split("@")[0]} telah menghapus pesan
+Untuk mematikan fitur ini, ketik
+*.enable delete*
+`.rapikan(), msg, { mentions: [participant] })
+    ini.copyNForward(msg.chat, msg).catch((e) => Konsol.cetak(e, msg))
+  } tangkap (e) {
+    Konsol.galat(e)
+  }
+}
+global.dfail = (type, m, conn) =>  {
+  misal msg = { rowner: "Only Developer - Command ini hanya untuk developer bot", owner: "Only Owner - Command ini hanya untuk owner bot", premium: "Only Premium - Command ini hanya untuk pengguna premium", group: "Group Chat - Command ini hanya bisa dipakai di dalam grup", private: "Private Chat - Command ini hanya bisa dipakai di private chat", admin: "Only Admin - Command ini hanya untuk admin grup", botAdmin: "Only Bot Admin - Command ini hanya bisa digunakan ketika bot menjadi admin", unreg: "Halo kak! 👋 Anda harus mendaftar ke database bot dulu sebelum menggunakan fitur ini\nCara daftarnya tulis .daftar Nama.umur", restrict: "Restrict - Fitur restrict belum diaktifkan di chat ini" }[type]
+  jika (msg) {
+    kembalikan conn.reply(m.chat, msg, m)
+  }
+}
+misal file = global.__filename(importMeta.url, benar)
+watchFile(file, asinkron () =>  {
+  unwatchFile(file)
+  Konsol.cetak(chalk.redBright("Update 'handler.js'"))
+  jika (global.reloadHandler) {
+    Konsol.cetak(tunggu global.reloadHandler())
+  }
+})

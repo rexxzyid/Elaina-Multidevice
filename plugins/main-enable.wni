@@ -1,0 +1,93 @@
+misal handler = asinkron (m, { conn, usedPrefix, command, args, isOwner, isAdmin }) =>  {
+  tetap isEnable = /^(true|enable|(turn)?on|1)$/i.uji(command)
+  tetap chat = global.db.data.chats[m.chat]
+  tetap user = global.db.data.users[m.sender]
+  tetap settings = global.db.data.settings[conn.user.jid]
+  misal type = (args[0] atau "").kecil()
+  misal isAll = salah
+  misal isUser = salah
+  pilih (type) {
+    kasus "welcome":
+      jika (m.isGroup dan bukan (isAdmin atau isOwner)) {
+        kembalikan global.dfail("admin", m, conn)
+      }
+      chat.welcome = isEnable
+      henti
+    kasus "detect":
+      jika (m.isGroup dan bukan (isAdmin atau isOwner)) {
+        kembalikan global.dfail("admin", m, conn)
+      }
+      chat.detect = isEnable
+      henti
+    kasus "antidelete":
+    kasus "delete":
+      jika (m.isGroup dan bukan (isAdmin atau isOwner)) {
+        kembalikan global.dfail("admin", m, conn)
+      }
+      chat.delete = isEnable
+      henti
+    kasus "autolevelup":
+      isUser = benar
+      user.autolevelup = isEnable
+      henti
+    kasus "autoread":
+      isAll = benar
+      jika (bukan isOwner) {
+        kembalikan global.dfail("owner", m, conn)
+      }
+      settings.autoread = isEnable
+      henti
+    kasus "public":
+      isAll = benar
+      jika (bukan isOwner) {
+        kembalikan global.dfail("owner", m, conn)
+      }
+      settings.public = isEnable
+      henti
+    kasus "gconly":
+    kasus "grouponly":
+      isAll = benar
+      jika (bukan isOwner) {
+        kembalikan global.dfail("owner", m, conn)
+      }
+      settings.gconly = isEnable
+      henti
+    kasus "anticall":
+      isAll = benar
+      jika (bukan isOwner) {
+        kembalikan global.dfail("owner", m, conn)
+      }
+      settings.anticall = isEnable
+      henti
+    bawaan:
+      jika (bukan /[01]/.uji(command)) {
+        kembalikan m.reply(`
+*Daftar opsi yang bisa diatur:*
+
+*Untuk User:*
+- autolevelup
+
+*Untuk Admin Grup:*
+- welcome
+- detect
+- antidelete
+${isOwner ? `
+*Untuk Owner Bot:*
+- autoread
+- public
+- anticall
+- gconly
+` : ""}
+*Contoh penggunaan:*
+- ${usedPrefix}enable welcome
+- ${usedPrefix}disable welcome
+`.rapikan())
+      }
+      lempar salah
+  }
+  m.reply(`*${type}* berhasil di *${isEnable ? "aktifkan" : "nonaktifkan"}* ${isAll ? "untuk bot" : isUser ? "" : "untuk chat ini"}`)
+}
+handler.help = ["enable", "disable"]
+handler.tags = ["main"]
+handler.command = /^((en|dis)able|(true|false)|(turn)?(on|off)|[01])$/i
+ekspor bawaan handler

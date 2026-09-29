@@ -1,0 +1,17 @@
+misal handler = asinkron (m, { text, conn }) =>  {
+  jika (bukan text) {
+    lempar "Masukkan text\n\nContoh:\n.brat abay dan senn"
+  }
+  coba {
+    tetap url = "https://shinana-brat.hf.space/?text=" + encodeURIComponent(text)
+    conn.sendSticker(m.chat, url, m)
+  } tangkap (e) {
+    Konsol.galat(e)
+    m.reply("Brat error, donasi ke owner segera")
+  }
+}
+handler.help = ["brat"]
+handler.tags = ["sticker"]
+handler.command = /^brat$/i
+handler.register = benar
+ekspor bawaan handler

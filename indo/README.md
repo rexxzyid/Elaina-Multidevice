@@ -1,38 +1,43 @@
-# POC: Elaina-Multidevice dalam InDo (indo-langvm)
+# Elaina-Multidevice dalam InDo (indo-langvm)
 
-Percobaan mem-port bagian **logika murni** bot ke bahasa
+Branch `indo-langvm` mem-port **seluruh** berkas `.js` bot ke bahasa
 [`indo-langvm`](https://www.npmjs.com/package/indo-langvm) (berkas `.wni`, kata
 kunci berbahasa Indonesia). Repo bahasa: <https://github.com/rexxzyid/InDo>.
 
-## Status: proof-of-concept, bukan konversi penuh
+## Cakupan
 
-Konversi **seluruh** bot ke indo-langvm **belum feasible**. Bot ini aplikasi
-Node yang bergantung pada modul yang tidak bisa di-load VM indo-langvm:
+Semua 110 berkas `.js` (inti + `lib/` + 97 plugin) ditransliterasi ke `.wni`
+lewat parser TypeScript → penulis InDo, lalu **setiap** berkas divalidasi lolos
+`indo periksa` (parser InDo). Kata kunci dan builtin dipetakan:
 
-- `baileys` (`@rexxhayanasi/elaina-baileys`) — koneksi WhatsApp lewat WebSocket +
-  kripto Signal. Runtime indo-langvm kini punya primitif WebSocket dan kripto
-  (x25519, ed25519, aes-gcm/cbc, hmac, hkdf, sha256), tetapi ia tetap VM sendiri
-  tanpa interop npm, jadi tidak bisa `impor` modul JavaScript apa adanya.
-- `better-sqlite3` — modul native Node.
-- `axios`, `cheerio`, `fluent-ffmpeg`, `file-type`, `pdfkit`, dll — modul npm.
-- 100+ plugin memakai `conn.*`, unduhan HTTP, database, dan ffmpeg.
+- `const`/`let` → `tetap`/`misal`, `function` → `fungsi`, `return` →
+  `kembalikan`, `if/else` → `jika/lainnya`, `for/while/do` →
+  `untuk/selama/lakukan`, `switch/case` → `pilih/kasus`, `try/catch/finally` →
+  `coba/tangkap/akhirnya`, `throw` → `lempar`, `class/new/this` →
+  `kelas/baru/ini`, `async/await` → `asinkron/tunggu`, `typeof/instanceof` →
+  `jenisdari/contohdari`, `&&/||/!` → `dan/atau/bukan`.
+- `Math` → `Matematika` (`floor`→`bawah`, `round`→`bulatkan`, `pow`→`pangkat`,
+  …), `Object` → `Objek` (`keys`→`kunci`, …), `JSON.stringify/parse` →
+  `JSON.teks/urai`, `console.log` → `Konsol.cetak`.
+- Metode array/teks: `map`→`petakan`, `filter`→`saring`, `find`→`cari`,
+  `forEach`→`untukSetiap`, `includes`→`berisi`, `push`→`tambah`,
+  `slice`→`iris`, `split`→`pisah`, `join`→`gabung`, `length`→`panjang`, dst.
+- Impor relatif `./x.js` diarahkan ke `./x.wni`. Komentar dibuang otomatis
+  (aturan repo: kode tanpa `//` atau `/** */`).
 
-Bagian inti bot (koneksi, plugin, I/O) tetap JavaScript/Node. Yang cocok di-port
-adalah fungsi murni tanpa I/O.
+## Batasan jujur (yang tidak bisa dipastikan jalan)
 
-## Yang di-port
+Konversi ini **sintaktis**, bukan jaminan bot jalan end-to-end. `indo-langvm`
+adalah VM tersendiri: bisa `impor` antar-`.wni`, tetapi **tidak** bisa `impor`
+modul npm/Node (`baileys`, `axios`, `better-sqlite3`, `cheerio`, `fs`, `path`,
+`worker_threads`, dll). Berkas yang memanggil modul itu saat dimuat akan gagal
+di VM. Yang **benar-benar jalan** hanya berkas berlogika murni; contoh yang
+sudah diuji byte-per-byte identik dengan JS ada di bawah.
 
-Hasilnya dibuktikan **identik** dengan versi JavaScript-nya:
+Agar bot jalan penuh dalam `.wni` dibutuhkan lapisan interop npm di runtime
+InDo (arah transpile-ke-JS), yang belum ada.
 
-- **Levelling** (`levelling.wni`) — port `lib/levelling.js` (perhitungan
-  XP/level, hanya `Math`). `pertumbuhan` = 2.576652002695681, `rentangXp(5)` =
-  `{min:64,max:101,xp:37}`, `cariLevel(1000)` = 14.
-- **Util** (`util.wni`) — pembantu murni dari `lib/simple.js`: `toTimeString`
-  (format durasi "hari/jam/menit/detik"), `isNumber`, `nullish`, dan `getKey`
-  (SHA256 hex). `getKey("halo")` = `a4e63bca…16d777`, cocok persis dengan
-  `createHash('sha256')` di Node.
-
-## Menjalankan
+## Contoh teruji (jalan di indo-langvm)
 
 ```bash
 npm install -g indo-langvm
@@ -40,21 +45,13 @@ indo jalankan indo/levelling.tes.wni
 indo jalankan indo/util.tes.wni
 ```
 
-## Berkas
+| Kasus | indo-langvm | JS |
+| --- | --- | --- |
+| `pertumbuhan` | 2.576652002695681 | 2.576652002695681 |
+| `rentangXp(5)` | `{min:64,max:101,xp:37}` | `{min:64,max:101,xp:37}` |
+| `toTimeString(90061000)` | `1 hari 1 jam 1 menit 1 detik` | sama |
+| `getKey("halo")` | `a4e63bca…16d777` | sama (`sha256`) |
 
-| Berkas | Isi |
-| --- | --- |
-| `levelling.wni` | Port `lib/levelling.js` (XP/level) |
-| `levelling.tes.wni` | Uji levelling vs versi JS |
-| `util.wni` | Port pembantu murni `lib/simple.js` |
-| `util.tes.wni` | Uji util vs versi JS |
-
-## Catatan porting
-
-- `typeof` indo-langvm mengembalikan nama Indonesia (`"angka"` untuk number,
-  `"teks"` untuk string).
-- `Math` → `Matematika` (`pangkat`, `bulatkan`, `bawah`, `PI`, `E`), `Infinity`
-  → `Takhingga`, `isNaN` → `adalahNaN`, `String.trim` → `.rapikan`,
-  `parseInt` → `uraiBulat`, `createHash('sha256')` → `Kripto.sha256` + `Bita`.
-- `global.multiplier` diganti parameter bawaan `pengali = 1` (VM terpisah, tidak
-  ada `global` bot).
+`indo/levelling.wni` dan `indo/util.wni` adalah port murni yang ditulis tangan
+dan diuji; berkas `lib/levelling.wni` dst adalah transliterasi apa adanya dari
+sumber JS (mis. masih memakai `global.multiplier`, yang tidak ada di VM).

@@ -1,0 +1,42 @@
+impor os dari "os"
+impor fs dari "fs"
+misal handler = asinkron (m) =>  {
+  tetap start = Tanggal.now()
+  tunggu m.react("🍌")
+  tetap totalMem = os.totalmem()
+  tetap freeMem = os.freemem()
+  tetap usedMem = totalMem - freeMem
+  tetap memPercent = ((usedMem / totalMem) * 100).keTetap(1)
+  misal cap = `\`Server Information\`
+* Running On : ${process.env.USER == "root" ? "VPS" : "HOSTING ( PANEL )"}
+* Home Dir : ${os.homedir()}
+* Tmp Dir : ${os.tmpdir()} *( ${fs.readdirSync(os.tmpdir()).panjang} Files )*
+* Hostname : ${os.hostname()}
+* Node Version : ${process.version}
+* Cwd : ${process.cwd()}
+
+\`Management Server\`
+* Bot Speed : ${Tanggal.now() - start} ms
+* Uptime Bot : ${toTime(process.uptime() * 1000)}
+* Uptime Server : ${toTime(os.uptime() * 1000)}
+* Memory : ${formatSize(usedMem)} / ${formatSize(totalMem)} (${memPercent}%)
+* CPU : ${os.cpus()[0].model}
+* Release : ${os.release()}
+* Type : ${os.type()}`
+  m.reply(cap)
+}
+handler.help = ["ping"]
+handler.tags = ["info"]
+handler.command = ["ping", "speed", "os"]
+ekspor bawaan handler
+fungsi toTime(ms) {
+  misal d = Matematika.bawah(ms / 86400000)
+  misal h = Matematika.bawah((ms % 86400000) / 3600000)
+  misal m = Matematika.bawah((ms % 3600000) / 60000)
+  misal s = Matematika.bawah((ms % 60000) / 1000)
+  kembalikan (d ? `${d}d ` : "") + (h ? `${h}h ` : "") + (m ? `${m}m ` : "") + (s ? `${s}s` : "")
+}
+fungsi formatSize(size) {
+  tetap multiplier = Matematika.pangkat(10, 1)
+  kembalikan Matematika.bulatkan((size / (1024 * 1024)) * multiplier) / multiplier + "MiB"
+}

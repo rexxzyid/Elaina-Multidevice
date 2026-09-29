@@ -1,0 +1,19 @@
+misal handler = asinkron (m, { command }) =>  {
+  jika (bukan m.quoted) {
+    lempar "Tag Pesan!"
+  }
+  jika (bukan m.quoted.fileSha256) {
+    lempar "SHA256 Hash Missing"
+  }
+  misal sticker = db.data.sticker
+  misal hash = m.quoted.fileSha256
+  jika (bukan (hash dalam sticker)) {
+    lempar "Hash not found in database"
+  }
+  sticker[hash].locked = bukan /^un/i.uji(command)
+  m.reply("Done!")
+}
+handler.help = ["un", ""].petakan((v) => v + "lockcmd")
+handler.tags = ["database"]
+handler.command = /^(un)?lockcmd$/i
+ekspor bawaan handler

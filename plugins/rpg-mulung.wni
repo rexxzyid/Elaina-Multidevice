@@ -1,0 +1,35 @@
+tetap timeout = 1800000
+misal handler = asinkron (m, { conn }) =>  {
+  misal user = global.db.data.users[m.sender]
+  misal now = Tanggal.now()
+  misal wait = timeout - (now - user.lastmulung)
+  jika (now - user.lastmulung < timeout) {
+    lempar `Kamu sedang kelelahan untuk mulung 😵
+Tunggu *${clockString(wait)}* lagi`
+  }
+  misal botol = Matematika.bawah(Matematika.acak() * 100)
+  misal kaleng = Matematika.bawah(Matematika.acak() * 40)
+  misal kardus = Matematika.bawah(Matematika.acak() * 20)
+  user.botol += botol
+  user.kaleng += kaleng
+  user.kardus += kardus
+  user.lastmulung = now
+  m.reply(`*Hasil Mulung Kamu* :
+- Botol : *${botol}*
+- Kardus : *${kardus}*
+- Kaleng : *${kaleng}*`)
+  aturWaktu(() =>  {
+    conn.reply(m.chat, `♻️ Yuk waktunya *mulung lagi*!`, m)
+  }, timeout)
+}
+handler.help = ["mulung"]
+handler.tags = ["rpg"]
+handler.command = /^(mulung)$/i
+handler.group = benar
+ekspor bawaan handler
+fungsi clockString(ms) {
+  misal h = adalahNaN(ms) ? "--" : Matematika.bawah(ms / 3600000) % 24
+  misal m = adalahNaN(ms) ? "--" : Matematika.bawah(ms / 60000) % 60
+  misal s = adalahNaN(ms) ? "--" : Matematika.bawah(ms / 1000) % 60
+  kembalikan ["\n" + h, " *Jam*\n ", m, " *Menit*\n ", s, " *Detik* "].petakan((v) => v.toString().isiAwal(2, 0)).gabung("")
+}

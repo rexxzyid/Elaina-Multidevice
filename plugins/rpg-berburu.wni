@@ -1,0 +1,52 @@
+misal handler = asinkron (m) =>  {
+  tetap user = global.db.data.users[m.sender]
+  tetap cooldown = 500000
+  tetap now = Tanggal.now()
+  tetap diff = now - user.lastberburu
+  jika (diff < cooldown) {
+    kembalikan m.reply(`*Sepertinya Kamu Sudah Kecapean*
+*Silahkan Istirahat Dulu Selama* ${clockString(cooldown - diff)}`)
+  }
+  tetap [rbrb1, rbrb2, rbrb3, rbrb4, rbrb5, rbrb6, rbrb7, rbrb8, rbrb9, rbrb10, rbrb11, rbrb12] = Larik.from({ length: 12 }, () => Matematika.bawah(Matematika.acak() * 9) + 1)
+  tetap hsl = `Hasil Berburu
+
+ 🐂 > ${rbrb1}              🐃 > ${rbrb7}
+ 🐅 > ${rbrb2}              🐮 > ${rbrb8}
+ 🐘 > ${rbrb3}              🐒 > ${rbrb9}
+ 🐐 > ${rbrb4}              🐗 > ${rbrb10}
+ 🐼 > ${rbrb5}              🐖 > ${rbrb11}
+ 🐊 > ${rbrb6}              🐓 > ${rbrb12}
+
+*Ketik: .kandang Untuk Melihat Hasilnya*
+`
+  user.banteng += rbrb1
+  user.harimau += rbrb2
+  user.gajah += rbrb3
+  user.kambing += rbrb4
+  user.panda += rbrb5
+  user.buaya += rbrb6
+  user.kerbau += rbrb7
+  user.sapi += rbrb8
+  user.monyet += rbrb9
+  user.babihutan += rbrb10
+  user.babi += rbrb11
+  user.ayam += rbrb12
+  m.reply("Sedang Mencari Mangsa..")
+  aturWaktu(() => m.reply("Kamu Mendapatkan Mangsa Dan Menunggu Waktu Yang Tepat Untuk Memangsa"), 14000)
+  aturWaktu(() => m.reply("Duarrrr M*m*k, Kamu Adu Mekanik Dengan Buruanmu Di Exp Lane"), 15000)
+  aturWaktu(() => m.reply("Nah Ini Dia...\n\nKamu Menang Adu Mekanik, Walau Buruanmu Menggunakan Immortal :v"), 18000)
+  aturWaktu(() => m.reply(hsl), 20000)
+  user.lastberburu = now
+}
+handler.help = ["berburu"]
+handler.tags = ["rpg"]
+handler.command = /^(berburu)$/i
+handler.group = benar
+ekspor bawaan handler
+fungsi clockString(ms) {
+  misal d = adalahNaN(ms) ? "--" : Matematika.bawah(ms / 86400000)
+  misal h = adalahNaN(ms) ? "--" : Matematika.bawah(ms / 3600000) % 24
+  misal m = adalahNaN(ms) ? "--" : Matematika.bawah(ms / 60000) % 60
+  misal s = adalahNaN(ms) ? "--" : Matematika.bawah(ms / 1000) % 60
+  kembalikan ["\n" + d, " *Hari*\n ", h, " *Jam*\n ", m, " *Menit*\n ", s, " *Detik* "].petakan((v) => v.toString().isiAwal(2, 0)).gabung("")
+}

@@ -1,0 +1,52 @@
+impor { createHash } dari "crypto"
+misal Reg = /\|?(.*)([.|] *?)([0-9]*)$/i
+misal handler = asinkron fungsi(m, { text, usedPrefix }) {
+  misal user = global.db.data.users[m.sender]
+  tetap pp = tunggu conn.profilePictureUrl(m.sender, "image", "buffer")
+  jika (user.registered == benar) {
+    lempar `You Have Already Registered In The Database, Do You Want To Re-Register? *${usedPrefix}unreg*`
+  }
+  jika (bukan Reg.uji(text)) {
+    lempar `Masukan Nama.Umur kamu
+Contoh: .daftar Vlyyyn.17`
+  }
+  misal [_, name, _splitter, age] = text.cocok(Reg)
+  jika (bukan name) {
+    lempar "Nama Tidak Boleh Kosong"
+  }
+  jika (bukan age) {
+    lempar "Umur Tidak Boleh Kosong"
+  }
+  age = uraiBulat(age)
+  jika (age > 50) {
+    lempar "Tua Banget amjir"
+  }
+  jika (age < 12) {
+    lempar "Esempe Dilarang masuk"
+  }
+  user.name = name.rapikan()
+  user.age = age
+  user.regTime = Tanggal.now()
+  user.registered = benar
+  user.axe = 1
+  user.axedurability = 30
+  user.pickaxe = 1
+  user.pickaxedurability = 40
+  misal sn = createHash("md5").update(m.sender).digest("hex")
+  misal cap = `
+─── USER INFO ───
+• Name: ${name}
+• Age: ${age} Years
+• Status: Success
+• Serial: ${sn}
+
+── STARTER PACK ──
+• Axe: 1 ( 30 Durability )
+• Pickaxe: 1 ( 40 Durability )
+`
+  conn.adReply(m.chat, cap, pp, m, { title: "Berhasil Registrasi", body: "Kamu Adalah User Ke " + Objek.nilai(db.data.users).saring((v) => v.registered == benar).panjang })
+}
+handler.help = ["daftar <nama>.<umur>"]
+handler.tags = ["xp"]
+handler.command = /^(daftar|verify|reg(ister)?)$/i
+ekspor bawaan handler

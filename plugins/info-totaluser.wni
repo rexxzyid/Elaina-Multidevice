@@ -1,0 +1,14 @@
+misal handler = asinkron (m) =>  {
+  misal totalreg = Objek.kunci(global.db.data.users).panjang
+  misal rtotalreg = Objek.nilai(global.db.data.users).saring((user) => user.registered == benar).panjang
+  misal kon = `乂 *U S E R*
+    
+╭╾• *Current Database ${totalreg} User*
+=
+╰╾• *Currently Registered ${rtotalreg} User*`
+  tunggu m.reply(kon)
+}
+handler.help = ["totaluser"]
+handler.tags = ["info"]
+handler.command = /^(pengguna|(jumlah)?database|totaluser)$/i
+ekspor bawaan handler
