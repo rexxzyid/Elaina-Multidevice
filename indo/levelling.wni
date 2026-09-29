@@ -1,0 +1,29 @@
+ekspor tetap pertumbuhan = Matematika.pangkat(Matematika.PI / Matematika.E, 1.618) * Matematika.E * 0.75
+
+ekspor fungsi rentangXp(level, pengali = 1) {
+  jika (level < 0) lempar baru GalatTipe("level tidak boleh bernilai negatif")
+  level = Matematika.bawah(level)
+  misal min = 0
+  jika (level != 0) min = Matematika.bulatkan(Matematika.pangkat(level, pertumbuhan) * pengali) + 1
+  tetap max = Matematika.bulatkan(Matematika.pangkat(level + 1, pertumbuhan) * pengali)
+  kembalikan { min: min, max: max, xp: max - min }
+}
+
+ekspor fungsi cariLevel(xp, pengali = 1) {
+  jika (xp == Takhingga) kembalikan Takhingga
+  jika (adalahNaN(xp)) kembalikan xp
+  jika (xp <= 0) kembalikan -1
+  misal level = 0
+  lakukan {
+    level = level + 1
+  } selama (rentangXp(level, pengali).min <= xp)
+  kembalikan level - 1
+}
+
+ekspor fungsi bisaNaikLevel(level, xp, pengali = 1) {
+  jika (level < 0) kembalikan salah
+  jika (xp == Takhingga) kembalikan benar
+  jika (adalahNaN(xp)) kembalikan salah
+  jika (xp <= 0) kembalikan salah
+  kembalikan level < cariLevel(xp, pengali)
+}
