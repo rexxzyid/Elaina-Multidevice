@@ -48,6 +48,7 @@
     "file-type": "^17.1.1",
     "fluent-ffmpeg": "^2.1.3",
     "image-size": "^2.0.2",
+    "indo-langvm": "^1.0.0",
     "link-preview-js": "^3.2.0",
     "lru-cache": "^11.5.2",
     "moment-timezone": "^0.5.33",
