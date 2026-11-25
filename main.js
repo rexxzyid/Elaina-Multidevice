@@ -110,17 +110,17 @@ global.conn = makeWASocket(connectionOptions);
 
 if (!conn.authState.creds.registered) {
 	console.log(chalk.bgWhite(chalk.blue('Generating code...')));
-	try {
-		setTimeout(async () => {
+	setTimeout(async () => {
+		try {
 			let code = await conn.requestPairingCode(global.pairingNumber);
 			code = code?.match(/.{1,4}/g)?.join('-') || code;
 			console.log(chalk.black(chalk.bgGreen('Your Pairing Code : ')), chalk.black(chalk.white(code)));
-		}, 3000);
-	} catch (e) {
-		console.log(e);
-		fs.rmSync('./sessions', { recursive: true, force: true });
-		parentPort.postMessage('restart');
-	}
+		} catch (e) {
+			console.log(e);
+			fs.rmSync('./sessions', { recursive: true, force: true });
+			parentPort.postMessage('restart');
+		}
+	}, 3000);
 }
 
 if (global.db) {
